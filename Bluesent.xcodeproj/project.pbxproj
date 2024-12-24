@@ -6,10 +6,6 @@
 	objectVersion = 77;
 	objects = {
 
-/* Begin PBXBuildFile section */
-		27EDAEF42D1ADAC9008CC592 /* Yams in Frameworks */ = {isa = PBXBuildFile; productRef = 27EDAEF32D1ADAC9008CC592 /* Yams */; };
-/* End PBXBuildFile section */
-
 /* Begin PBXContainerItemProxy section */
 		27EDAECA2D1A146F008CC592 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -56,7 +52,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				27EDAEF42D1ADAC9008CC592 /* Yams in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -117,7 +112,6 @@
 			);
 			name = Bluesent;
 			packageProductDependencies = (
-				27EDAEF32D1ADAC9008CC592 /* Yams */,
 			);
 			productName = Bluesent;
 			productReference = 27EDAEB82D1A146C008CC592 /* Bluesent.app */;
@@ -562,13 +556,6 @@
 			relativePath = "../../../../../Users/zahedi/Downloads/mongo-swift-driver-main";
 		};
 /* End XCLocalSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		27EDAEF32D1ADAC9008CC592 /* Yams */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = Yams;
-		};
-/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 27EDAEB02D1A146C008CC592 /* Project object */;
 }
