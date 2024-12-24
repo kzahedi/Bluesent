@@ -6,6 +6,11 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		279769952D1B7AD500519B0B /* MongoSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 279769942D1B7AD500519B0B /* MongoSwift */; };
+		279769972D1B7AD500519B0B /* MongoSwiftSync in Frameworks */ = {isa = PBXBuildFile; productRef = 279769962D1B7AD500519B0B /* MongoSwiftSync */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		27EDAECA2D1A146F008CC592 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -52,6 +57,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				279769972D1B7AD500519B0B /* MongoSwiftSync in Frameworks */,
+				279769952D1B7AD500519B0B /* MongoSwift in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -112,6 +119,8 @@
 			);
 			name = Bluesent;
 			packageProductDependencies = (
+				279769942D1B7AD500519B0B /* MongoSwift */,
+				279769962D1B7AD500519B0B /* MongoSwiftSync */,
 			);
 			productName = Bluesent;
 			productReference = 27EDAEB82D1A146C008CC592 /* Bluesent.app */;
@@ -196,8 +205,7 @@
 			mainGroup = 27EDAEAF2D1A146C008CC592;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				27EDAEF12D1AD9A3008CC592 /* XCLocalSwiftPackageReference "../../../../../Users/zahedi/Downloads/Yams-main" */,
-				27EDAEF22D1AD9D7008CC592 /* XCLocalSwiftPackageReference "../../../../../Users/zahedi/Downloads/mongo-swift-driver-main" */,
+				279769932D1B7AD500519B0B /* XCLocalSwiftPackageReference "../../swift-modules/mongo-swift-driver-main" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 27EDAEB92D1A146C008CC592 /* Products */;
@@ -547,15 +555,22 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		27EDAEF12D1AD9A3008CC592 /* XCLocalSwiftPackageReference "../../../../../Users/zahedi/Downloads/Yams-main" */ = {
+		279769932D1B7AD500519B0B /* XCLocalSwiftPackageReference "../../swift-modules/mongo-swift-driver-main" */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = "../../../../../Users/zahedi/Downloads/Yams-main";
-		};
-		27EDAEF22D1AD9D7008CC592 /* XCLocalSwiftPackageReference "../../../../../Users/zahedi/Downloads/mongo-swift-driver-main" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = "../../../../../Users/zahedi/Downloads/mongo-swift-driver-main";
+			relativePath = "../../swift-modules/mongo-swift-driver-main";
 		};
 /* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		279769942D1B7AD500519B0B /* MongoSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MongoSwift;
+		};
+		279769962D1B7AD500519B0B /* MongoSwiftSync */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MongoSwiftSync;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 27EDAEB02D1A146C008CC592 /* Project object */;
 }

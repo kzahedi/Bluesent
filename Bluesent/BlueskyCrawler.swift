@@ -110,30 +110,33 @@ class BlueskyCrawler {
         
         if sourceDid == nil {
             print("Cannot resolve \(sourceAccount!)")
-        } else {
-            print("Source DID: \(sourceDid!)")
+            return
         }
         
         if targetDid == nil {
             print("Cannot resolve \(targetAccount!)")
-        } else {
-            print("Target DID: \(sourceDid!)")
+            return
         }
         
         let token : String? = getToken(sourceDID: sourceDid!, appPassword: appPassword!)
         
         if token == nil {
             print("Cannot get token")
-        } else {
-            print("Token: \(token!)")
+            return
         }
         
         let feed = fetchFeed(for: targetDid!, token: token!, limit: limit!)
         
         if feed == nil {
             print("Cannot fetch feed")
+            return
         } else {
-            print(feed!)
+            do {
+                let mongoDB = try MongoService()
+                try mongoDB.savePosts(feed: feed!)
+            } catch {
+                print(error)
+            }
         }
     }
     
@@ -306,7 +309,6 @@ class BlueskyCrawler {
                 print("Decoding feed response")
                 let feedResponse = try JSONDecoder().decode(FeedResponse.self, from: data!)
                 print("Feed Response successfully decoded")
-                print("Feed Response: \(feedResponse)")
 
                 let filteredPosts = feedResponse.feed.map { postWrapper in
                     let post = postWrapper.post
@@ -331,11 +333,6 @@ class BlueskyCrawler {
                 group.leave()
             } catch let decodingError as DecodingError {
                 print("Decoding error: \(decodingError)")
-                if let jsonObject = try? JSONSerialization.jsonObject(with: data!),
-                   let prettyData = try? JSONSerialization.data(withJSONObject: jsonObject, options: .prettyPrinted),
-                   let prettyString = String(data: prettyData, encoding: .utf8) {
-                    print("Raw Response:\n\(prettyString)")
-                }
                 group.leave()
             } catch let blueskyError as BlueskyError {
                 print("Bluesky error: \(blueskyError.localizedDescription)")
