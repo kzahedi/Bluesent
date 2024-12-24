@@ -8,38 +8,60 @@
 import SwiftUI
 
 struct ControlPanel: View {
+    var state : SessionState = .shared
+    
+    @State private var showingAlert = false
+    
+    @State private var limit: String = ""
+    @State private var targetAccountHandle: String = ""
+    @State private var appPassword: String = ""
+    @State private var sourceAccount: String = ""
+    
+    @ObservedObject var sessionState: SessionState = .shared
+    
     var body: some View {
-        var showFileImporter: Bool = true
-        VStack{
-            Button {
-                showFileImporter = true
-            } label: {
-                Label("Choose Configuration", systemImage: "doc.circle")
-            }
-            .fileImporter(
-                isPresented: $showFileImporter,
-                allowedContentTypes: [.pdf],
-                allowsMultipleSelection: true
-            ) { result in
-                switch result {
-                case .success(let files):
-                    files.forEach { file in
-                        // gain access to the directory
-                        let gotAccess = file.startAccessingSecurityScopedResource()
-                        if !gotAccess { return }
-                        // access the directory URL
-                        // (read templates in the directory, make a bookmark, etc.)
-                        handlePickedPDF(file)
-                        // release access
-                        file.stopAccessingSecurityScopedResource()
+        VStack(alignment: .leading){
+            HStack {
+                Text("Account")
+                Spacer(minLength: 47)
+                TextField("Bluesky Handle", text: $sourceAccount)
+                    .onChange(of: sourceAccount) {
+                        sessionState.setAccountHandle(handle: sourceAccount)
                     }
-                case .failure(let error):
-                    // handle error
-                    print(error)
-                }
+             }
+            HStack {
+                Text("App password")
+                Spacer(minLength: 10)
+                TextField("Max. 100", text: $appPassword)
+                    .onChange(of: appPassword) {
+                        sessionState.setAppPassword(password: targetAccountHandle)
+                    }
+                
             }
-            
+            HStack {
+                Text("Targetaccount")
+                TextField("Bluesky Handle", text: $targetAccountHandle)
+                    .onChange(of: targetAccountHandle) {
+                        sessionState.setTargetAccount(handle: targetAccountHandle)
+                    }
+            }
+            HStack {
+                Text("Limit")
+                Spacer(minLength: 66)
+                TextField("Max. 100", text: $limit)
+                    .onChange(of: limit) {
+                        if let ilimit = Int(limit) {
+                            sessionState.setLimit(limit: ilimit)
+                        } else {
+                            // error message
+                        }
+                    }
+             }
+            Button("Run") {
+                state.toggleRunScraper()
+            }
         }
+        .frame(width:250)
     }
 }
 

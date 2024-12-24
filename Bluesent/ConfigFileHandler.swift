@@ -9,10 +9,17 @@ import Foundation
 import Yams
 
 
-func readConfigFile(filename: String) throws -> [String: String] {
-    let configFileURL = Bundle.main.url(forResource: "config", withExtension: "yaml")!
-    let data = try Data(contentsOf: configFileURL)
-    let yaml: [String: Any]? = try Yams.load(yaml:filename) as? [String: Any]
-    let config: [String: String] = yaml!.mapValues { $0 as! String }
-    return config
+func readConfigFile(filename: String) throws -> (String, String) {
+    var yamlString = ""
+    do {
+        yamlString = try String(contentsOfFile: filename, encoding: .utf8)
+    } catch {
+        print(error)
+    }
+    let yamlData = try Yams.load(yaml: yamlString) as? [String: Any]
+        
+    let accountHandle = yamlData?["handle"] as? String ?? ""
+    let appPassword = yamlData?["password"] as? String ?? ""
+
+    return (accountHandle, appPassword)
 }

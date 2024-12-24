@@ -9,8 +9,8 @@ import SwiftUI
 
 struct ContentView: View {
     var body: some View {
-        HStack{
-            ContentView()
+        HStack(alignment: .top){
+            ControlPanel()
             
             VStack(alignment:.leading) {
                 Text("Hello, world!")
