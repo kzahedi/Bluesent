@@ -26,7 +26,7 @@ struct ControlPanel: View {
             HStack {
                 Text("App password")
                 Spacer(minLength: 10)
-                TextField("Max. 100", text: $appPassword)
+                TextField("Password", text: $appPassword)
             }
             HStack {
                 Text("Targetaccount")

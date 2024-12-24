@@ -36,6 +36,8 @@ class BlueskyCrawler {
     private var appPassword: String? = nil
     private var limit: Int? = nil
     
+    private var token: String? = nil
+    
     init(sourceAccount: String, targetAccount: String, appPassword: String, limit: Int) {
         self.sourceAccount = sourceAccount
         self.targetAccount = targetAccount
@@ -76,79 +78,152 @@ class BlueskyCrawler {
         print("  App password:   \(self.appPassword!)")
         print("  Limit:          \(self.limit!)")
         
-        var sourceDid: String? = nil
-        var targetDid: String? = nil
+        let sourceDid: String? = resolveDID(handle: sourceAccount!)
+        let targetDid: String? = resolveDID(handle: targetAccount!)
         
-        resolveDID(handle: sourceAccount!) { did in
-            if did != nil {
-                sourceDid = did!
-            }
-        }
-        resolveDID(handle: targetAccount!) { did in
-            if did != nil {
-                targetDid = did
-            }
-        }
-        
-        if sourceDid == nil || targetDid == nil {
-            print("Error: Source or target did not resolve")
-            return
+        if sourceDid == nil {
+            print("Cannot resolve \(sourceAccount!)")
         } else {
             print("Source DID: \(sourceDid!)")
+        }
+        
+        if targetDid == nil {
+            print("Cannot resolve \(targetAccount!)")
+        } else {
             print("Target DID: \(sourceDid!)")
         }
         
+        let token : String? = getToken(sourceDID: sourceDid!, appPassword: appPassword!)
+        
+        if token == nil {
+            print("Cannot get token")
+        } else {
+            print("Token: \(token!)")
+        }
+       
     }
     
-    private func resolveDID(handle: String, completion: @escaping (String?) -> Void) {
-        guard let url = URL(string: "\(didURL)?handle=\(handle)") else {
-            print("Invalid URL")
-            completion(nil)
-            return
+   
+    private func resolveDID(handle: String) -> String? {
+        let group = DispatchGroup()
+        let url = URL(string: "\(didURL)?handle=\(handle)")
+        
+        if url == nil {
+            print("Not an URL: \(didURL)?handle=\(handle)")
+            return nil
         }
 
-        var request = URLRequest(url: url)
+        var request = URLRequest(url: url!)
         request.httpMethod = "GET"
+        
+        var returnValue : String? = nil
 
+        group.enter()
         let task = URLSession.shared.dataTask(with: request) { data, response, error in
-            if let error = error {
-                print("Error resolving handle: \(error)")
-                completion(nil)
-                return
+            if error != nil {
+                print("Error resolving handle: \(error!)")
+                group.leave()
             }
 
-            guard let data = data else {
+            if data == nil {
                 print("No data received")
-                completion(nil)
-                return
+                group.leave()
             }
 
             // Log raw response for debugging
-            if let jsonString = String(data: data, encoding: .utf8) {
+            if let jsonString = String(data: data!, encoding: .utf8) {
                 print("Raw Handle Response: \(jsonString)")
             }
 
             do {
                 // Check for error response
-                if let errorResponse = try? JSONDecoder().decode(ErrorResponse.self, from: data) {
+                if let errorResponse = try? JSONDecoder().decode(ErrorResponse.self, from: data!) {
                     print("Error: \(errorResponse.error)")
                     if let message = errorResponse.message {
                         print("Message: \(message)")
                     }
-                    completion(nil)
-                    return
+                    group.leave()
                 }
 
-                let handleResponse = try JSONDecoder().decode(HandleResponse.self, from: data)
-                print("Resolved DID: \(handleResponse.did)")
-                completion(handleResponse.did)
+                let handleResponse = try JSONDecoder().decode(HandleResponse.self, from: data!)
+                returnValue = handleResponse.did
+                group.leave()
             } catch {
                 print("Error decoding handle response: \(error.localizedDescription)")
-                completion(nil)
+                group.leave()
             }
         }
 
         task.resume()
+        group.wait()
+        return returnValue
+    }
+    
+    
+    private func getToken(sourceDID: String, appPassword: String) -> String? {
+        let group = DispatchGroup()
+        let tokenPayload: [String: Any] = [
+            "identifier": sourceDID,
+            "password": appPassword
+        ]
+
+        guard let tokenData = try? JSONSerialization.data(withJSONObject: tokenPayload) else {
+            print("Error creating JSON payload")
+            return nil
+        }
+
+        var tokenRequest = URLRequest(url: URL(string: apiKeyURL)!)
+        tokenRequest.httpMethod = "POST"
+        tokenRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        tokenRequest.httpBody = tokenData
+
+        print("Requesting token with DID: \(sourceDID) and Password")
+        
+        var returnValue : String? = nil
+
+        group.enter()
+        let tokenTask = URLSession.shared.dataTask(with: tokenRequest) { data, response, error in
+            if let error = error {
+                print("Error getting token: \(error)")
+                group.leave()
+            }
+
+            if data == nil {
+                print("No data received")
+                group.leave()
+            }
+
+            // Log the raw JSON response
+            if let jsonString = String(data: data!, encoding: .utf8) {
+                print("Raw Token Response: \(jsonString)")
+            } else {
+                print("Cannot decode JSON")
+                group.leave()
+            }
+            
+
+            do {
+                // Check for error response
+                if let errorResponse = try? JSONDecoder().decode(ErrorResponse.self, from: data!) {
+                    print("Error: \(errorResponse.error)")
+                    if let message = errorResponse.message {
+                        print("Message: \(message)")
+                    }
+                    group.leave()
+                }
+
+                // Decode the token response
+                let tokenResponse = try JSONDecoder().decode(TokenResponse.self, from: data!)
+                returnValue = tokenResponse.accessJwt
+                group.leave()
+            } catch {
+                print("Error decoding token response: \(error)")
+                group.leave()
+            }
+        }
+        tokenTask.resume()
+        group.wait()
+        return returnValue
     }
 }
 
