@@ -68,11 +68,12 @@ class BlueskyRequestHandler {
     }
     
     
-    public func getToken(sourceDID: String, appPassword: String) -> String? {
+    public func getToken() -> String? {
+        let sourceDID = resolveDID(handle: Credentials.shared.getUsername()) ?? ""
         let group = DispatchGroup()
         let tokenPayload: [String: Any] = [
             "identifier": sourceDID,
-            "password": appPassword
+            "password": Credentials.shared.getPassword() ?? ""
         ]
         
         guard let tokenData = try? JSONSerialization.data(withJSONObject: tokenPayload) else {

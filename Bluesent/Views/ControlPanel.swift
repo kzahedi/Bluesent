@@ -18,21 +18,7 @@ struct ControlPanel: View {
     
     var body: some View {
         VStack(alignment: .leading){
-            HStack {
-                Text("Account")
-                Spacer(minLength: 47)
-                TextField("Bluesky Handle", text: $sourceAccount)
-             }
-            HStack {
-                Text("App password")
-                Spacer(minLength: 10)
-                TextField("Password", text: $appPassword)
-            }
-            HStack {
-                Text("Targetaccount")
-                TextField("Bluesky Handle", text: $targetAccountHandle)
-           }
-            HStack {
+           HStack {
                 Text("Limit")
                 Spacer(minLength: 66)
                 TextField("Max. 100", text: $limit)
@@ -43,9 +29,9 @@ struct ControlPanel: View {
                             // error message
                         }
                     }
-             }
+            }
             Button("Run") {
-                var blueskyCrawler = BlueskyCrawler(sourceAccount: sourceAccount, targetAccount: targetAccountHandle, appPassword: appPassword, limit: iLimit)
+                let blueskyCrawler = BlueskyCrawler(limit: iLimit)
                 blueskyCrawler.run()
             }
         }

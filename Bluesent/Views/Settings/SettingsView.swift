@@ -17,9 +17,9 @@ struct SettingsView: View {
                     Label("Profile", systemImage: "person.crop.circle")
                 }
             
-            AppearanceSettingsView()
+            ListOfAccountsView()
                 .tabItem {
-                    Label("Appearance", systemImage: "paintpalette")
+                    Label("List of Accounts", systemImage: "paintpalette")
                 }
             
             PrivacySettingsView()
@@ -27,29 +27,20 @@ struct SettingsView: View {
                     Label("Privacy", systemImage: "hand.raised")
                 }
         }
-        .frame(width: 450, height: 250)
-    }
-}
- 
-struct ProfileSettingsView: View {
-    var body: some View {
-        Text("Profile Settings")
-            .font(.title)
+        .frame(width: 800, height: 500)
     }
 }
  
  
-struct AppearanceSettingsView: View {
-    var body: some View {
-        Text("Appearance Settings")
-            .font(.title)
-    }
-}
- 
+
  
 struct PrivacySettingsView: View {
     var body: some View {
         Text("Privacy Settings")
             .font(.title)
     }
+}
+
+#Preview {
+    SettingsView()
 }

@@ -38,6 +38,7 @@ class MongoService {
     }
 
     func savePosts(feed: AccountFeed) throws {
+        print("Uploading \(feed.posts.count) posts to MongoDB")
         for post in feed.posts {
             let document = PostDocument(
                 _id: post.uri,

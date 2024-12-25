@@ -18,7 +18,7 @@ struct HandleResponse: Codable {
 
 struct TokenResponse: Codable {
     let accessJwt: String
-
+    
     enum CodingKeys: String, CodingKey {
         case accessJwt = "accessJwt"
     }
@@ -30,7 +30,7 @@ enum BlueskyError: Error {
     case networkError(String, underlyingError: Error)
     case invalidResponse(String)
     case unauthorized(String)
-
+    
     var localizedDescription: String {
         switch self {
         case .feedFetchFailed(let reason, let code):
@@ -53,18 +53,16 @@ enum BlueskyError: Error {
 
 class BlueskyCrawler {
     
-   
+    
     private var sourceAccount: String? = nil
-    private var targetAccount: String? = nil
+    private var targetAccounts: [String]? = nil
     private var appPassword: String? = nil
     private var limit: Int? = nil
     
+    
     private var token: String? = nil
     
-    init(sourceAccount: String, targetAccount: String, appPassword: String, limit: Int) {
-        self.sourceAccount = sourceAccount
-        self.targetAccount = targetAccount
-        self.appPassword = appPassword
+    init(limit: Int) {
         self.limit = limit
     }
     
@@ -74,11 +72,21 @@ class BlueskyCrawler {
     
     public func run() {
         var errorMsg : String = ""
+        
+        sourceAccount = Credentials.shared.getUsername()
+        appPassword = Credentials.shared.getPassword()
+        targetAccounts = UserDefaults.standard.stringArray(forKey: "targetAccounts")
+        if targetAccounts != nil {
+            print("Taget accounts: \(targetAccounts!)")
+        } else {
+            print("No target accounts given")
+        }
+       
         if self.sourceAccount == nil || self.sourceAccount!.isEmpty{
             errorMsg += "Source account is missing.\n"
         }
-        if self.targetAccount == nil || self.targetAccount!.isEmpty {
-            errorMsg += "Target account is missing.\n"
+        if self.targetAccounts == nil || self.targetAccounts!.isEmpty {
+            errorMsg += "Target accounts are missing.\n"
         }
         if self.appPassword == nil || self.appPassword!.isEmpty {
             errorMsg += "App password is missing.\n"
@@ -96,47 +104,47 @@ class BlueskyCrawler {
         }
         
         print("Running Scraper with following parameters")
-        print("  Source account: \(self.sourceAccount!)")
-        print("  Target account: \(self.targetAccount!)")
-        print("  App password:   \(self.appPassword!)")
-        print("  Limit:          \(self.limit!)")
+        print("  Target accounts: \(self.targetAccounts!)")
+        print("  App password:    \(self.appPassword!)")
+        print("  Limit:           \(self.limit!)")
         
         let blueskyRequestHandler = BlueskyRequestHandler()
-        
-        let sourceDid: String? = blueskyRequestHandler.resolveDID(handle: sourceAccount!)
-        let targetDid: String? = blueskyRequestHandler.resolveDID(handle: targetAccount!)
-        
-        if sourceDid == nil {
-            print("Cannot resolve \(sourceAccount!)")
-            return
-        }
-        
-        if targetDid == nil {
-            print("Cannot resolve \(targetAccount!)")
-            return
-        }
-        
-        let token : String? = blueskyRequestHandler.getToken(sourceDID: sourceDid!, appPassword: appPassword!)
+        let token : String? = blueskyRequestHandler.getToken()
         
         if token == nil {
             print("Cannot get token")
             return
         }
         
-        let feed = blueskyRequestHandler.fetchFeed(for: targetDid!, token: token!, limit: limit!)
+        var mongoDB : MongoService? = nil
         
-        if feed == nil {
-            print("Cannot fetch feed")
-            return
-        } else {
-            do {
-                let mongoDB = try MongoService()
-                try mongoDB.savePosts(feed: feed!)
-            } catch {
-                print(error)
+        do {
+            mongoDB = try MongoService()
+        } catch {
+            print(error)
+        }
+        
+        for targetAccount in self.targetAccounts! {
+            let targetDid: String? = blueskyRequestHandler.resolveDID(handle: targetAccount)
+            
+            if targetDid == nil {
+                print("Cannot resolve \(targetAccount)")
+                return
+            }
+            
+            
+            let feed = blueskyRequestHandler.fetchFeed(for: targetDid!, token: token!, limit: limit!)
+            
+            if feed == nil {
+                print("Cannot fetch feed")
+                return
+            } else {
+                do {
+                    try mongoDB!.savePosts(feed: feed!)
+                } catch {
+                    print(error)
+                }
             }
         }
     }
 }
-
-
