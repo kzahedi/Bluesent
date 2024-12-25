@@ -31,11 +31,21 @@ struct ControlPanel: View {
                     }
             }
             Button("Run") {
-                let blueskyCrawler = BlueskyCrawler(limit: iLimit)
-                blueskyCrawler.run()
+                do {
+                    try runCrawler()
+                } catch {
+                    print(error)
+                }
             }
         }
         .frame(width:250)
+    }
+    
+    func runCrawler() throws {
+        let blueskyCrawler = BlueskyCrawler()
+        Task {
+            try await blueskyCrawler.run(limit:iLimit)
+        }
     }
 }
 

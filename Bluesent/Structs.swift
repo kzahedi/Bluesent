@@ -5,6 +5,8 @@
 //  Created by Keyan Ghazi-Zahedi on 25.12.24.
 //
 
+import Foundation
+
 struct FeedResponse: Codable {
     let cursor: String
     let feed: [FeedItem]
@@ -30,17 +32,16 @@ struct Record: Codable {
     let text: String
     let createdAt: String
     let embed: Embed?
-    let langs: [String]
-
+    
     enum CodingKeys: String, CodingKey {
-        case text, createdAt, embed, langs
+        case text, createdAt, embed
     }
 }
 
 struct Embed: Codable {
     let type: String
     let external: External?
-
+    
     enum CodingKeys: String, CodingKey {
         case type = "$type"
         case external
@@ -61,8 +62,10 @@ struct Author: Codable {
     let createdAt: String
 }
 
-struct PostResponse: Codable {
+struct CrawlerResponse: Codable {
     let author: String
+    let handle: String
+    let did: String
     let createdAt: String
     let likeCount: Int
     let quoteCount: Int
@@ -73,8 +76,26 @@ struct PostResponse: Codable {
     let uri: String
 }
 
+
+
 struct AccountFeed: Codable {
-    let handle: String
     let lastChecked: String
-    let posts: [PostResponse]
+    let posts: [CrawlerResponse]
 }
+
+
+struct MongoDBDocument: Codable {
+    var _id: String  // Using post URI as unique identifier
+    var author: String
+    var createdAt: String
+    var likeCount: Int
+    var quoteCount: Int
+    var replyCount: Int
+    var repostCount: Int
+    var text: String
+    var title: String?
+    var handle: String
+    var fetchedAt: Date
+    var sentiment: Float16?
+}
+

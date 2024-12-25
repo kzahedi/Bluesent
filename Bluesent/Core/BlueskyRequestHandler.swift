@@ -6,13 +6,10 @@
 //
 import Foundation
 
-class BlueskyRequestHandler {
-    private let didURL = "https://bsky.social/xrpc/com.atproto.identity.resolveHandle"
-    private let apiKeyURL = "https://bsky.social/xrpc/com.atproto.server.createSession"
-    private let feedURL = "https://bsky.social/xrpc/app.bsky.feed.getAuthorFeed"
-    private let feedRequestURL = "https://api.bsky.social/xrpc/app.bsky.feed.getAuthorFeed"
+struct BlueskyRequestHandler {
      
     public func resolveDID(handle: String) -> String? {
+        let didURL = "https://bsky.social/xrpc/com.atproto.identity.resolveHandle"
         let group = DispatchGroup()
         let url = URL(string: "\(didURL)?handle=\(handle)")
         
@@ -69,6 +66,7 @@ class BlueskyRequestHandler {
     
     
     public func getToken() -> String? {
+        let apiKeyURL = "https://bsky.social/xrpc/com.atproto.server.createSession"
         let sourceDID = resolveDID(handle: Credentials.shared.getUsername()) ?? ""
         let group = DispatchGroup()
         let tokenPayload: [String: Any] = [
@@ -136,6 +134,7 @@ class BlueskyRequestHandler {
     }
     
     public func fetchFeed(for targetDID: String, token: String, limit: Int) -> AccountFeed? {
+        let feedRequestURL = "https://api.bsky.social/xrpc/app.bsky.feed.getAuthorFeed"
         let url = feedRequestURL + "?actor=\(targetDID)&limit=\(limit)"
         var feedRequest = URLRequest(url: URL(string: url)!)
         let group = DispatchGroup()
@@ -166,6 +165,12 @@ class BlueskyRequestHandler {
                 group.leave()
             }
             
+            if let jsonObject = try? JSONSerialization.jsonObject(with: data!),
+                      let prettyData = try? JSONSerialization.data(withJSONObject: jsonObject, options: .prettyPrinted),
+                      let prettyString = String(data: prettyData, encoding: .utf8) {
+                       print("Raw Response:\n\(prettyString)")
+                   }
+             
             do {
                 if httpResponse!.statusCode == 401 {
                     throw BlueskyError.unauthorized("Invalid or expired token")
@@ -179,13 +184,15 @@ class BlueskyRequestHandler {
                 }
                 
                 print("Decoding feed response")
-                let feedResponse = try JSONDecoder().decode(FeedResponse.self, from: data!)
+               let feedResponse = try JSONDecoder().decode(FeedResponse.self, from: data!)
                 print("Feed Response successfully decoded")
                 
                 let filteredPosts = feedResponse.feed.map { postWrapper in
                     let post = postWrapper.post
-                    return PostResponse(
+                    return CrawlerResponse(
                         author: post.author.displayName,
+                        handle: post.author.handle,
+                        did: post.author.did,
                         createdAt: post.record.createdAt,
                         likeCount: post.likeCount,
                         quoteCount: post.quoteCount,
@@ -198,7 +205,6 @@ class BlueskyRequestHandler {
                 }
                 
                 returnValue = AccountFeed(
-                    handle: targetDID,  // Changed from targetAccount to targetDID since targetAccount isn't available
                     lastChecked: feedResponse.cursor,
                     posts: filteredPosts
                 )

@@ -51,28 +51,16 @@ enum BlueskyError: Error {
 }
 
 
-class BlueskyCrawler {
-    
-    
-    private var sourceAccount: String? = nil
-    private var targetAccounts: [String]? = nil
-    private var appPassword: String? = nil
-    private var limit: Int? = nil
-    
-    
+struct BlueskyCrawler {
+   
     private var token: String? = nil
     
-    init(limit: Int) {
-        self.limit = limit
-    }
-    
-    deinit {
-        print("Bluesky crawler deinit")
-    }
-    
-    public func run() {
+    public func run(limit:Int) async throws {
         var errorMsg : String = ""
-        
+        var sourceAccount: String? = nil
+        var targetAccounts: [String]? = nil
+        var appPassword: String? = nil
+         
         sourceAccount = Credentials.shared.getUsername()
         appPassword = Credentials.shared.getPassword()
         targetAccounts = UserDefaults.standard.stringArray(forKey: "targetAccounts")
@@ -82,19 +70,16 @@ class BlueskyCrawler {
             print("No target accounts given")
         }
        
-        if self.sourceAccount == nil || self.sourceAccount!.isEmpty{
+        if sourceAccount == nil || sourceAccount!.isEmpty{
             errorMsg += "Source account is missing.\n"
         }
-        if self.targetAccounts == nil || self.targetAccounts!.isEmpty {
+        if targetAccounts == nil || targetAccounts!.isEmpty {
             errorMsg += "Target accounts are missing.\n"
         }
-        if self.appPassword == nil || self.appPassword!.isEmpty {
+        if appPassword == nil || appPassword!.isEmpty {
             errorMsg += "App password is missing.\n"
         }
-        if self.limit == nil {
-            errorMsg += "Limit is missing.\n"
-        }
-        if self.limit! <= 0 || self.limit! > 100 {
+        if limit <= 0 || limit > 100 {
             errorMsg += "Limit must be between 1 and 100.\n"
         }
         
@@ -104,9 +89,9 @@ class BlueskyCrawler {
         }
         
         print("Running Scraper with following parameters")
-        print("  Target accounts: \(self.targetAccounts!)")
-        print("  App password:    \(self.appPassword!)")
-        print("  Limit:           \(self.limit!)")
+        print("  Target accounts: \(targetAccounts!)")
+        print("  App password:    \(appPassword!)")
+        print("  Limit:           \(limit)")
         
         let blueskyRequestHandler = BlueskyRequestHandler()
         let token : String? = blueskyRequestHandler.getToken()
@@ -116,15 +101,15 @@ class BlueskyCrawler {
             return
         }
         
-        var mongoDB : MongoService? = nil
+        var mongoDB : MongoDBHandler? = nil
         
         do {
-            mongoDB = try MongoService()
+            mongoDB = try MongoDBHandler()
         } catch {
             print(error)
         }
         
-        for targetAccount in self.targetAccounts! {
+        for targetAccount in targetAccounts! {
             let targetDid: String? = blueskyRequestHandler.resolveDID(handle: targetAccount)
             
             if targetDid == nil {
@@ -133,7 +118,7 @@ class BlueskyCrawler {
             }
             
             
-            let feed = blueskyRequestHandler.fetchFeed(for: targetDid!, token: token!, limit: limit!)
+            let feed = blueskyRequestHandler.fetchFeed(for: targetDid!, token: token!, limit: limit)
             
             if feed == nil {
                 print("Cannot fetch feed")
@@ -146,5 +131,6 @@ class BlueskyCrawler {
                 }
             }
         }
+        try await SentimentAnalysis().runSentimentAnalysis()
     }
 }
