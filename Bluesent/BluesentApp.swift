@@ -13,5 +13,8 @@ struct BluesentApp: App {
         WindowGroup {
             ContentView()
         }
+        Settings {
+            SettingsView()
+        }
     }
 }
