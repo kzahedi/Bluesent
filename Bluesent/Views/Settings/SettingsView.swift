@@ -22,7 +22,7 @@ struct SettingsView: View {
                     Label("List of Accounts", systemImage: "paintpalette")
                 }
             
-            PrivacySettingsView()
+            CrawlerSettings()
                 .tabItem {
                     Label("Crawler Settings", systemImage: "hand.raised")
                 }

@@ -13,7 +13,7 @@ struct SentimentAnalysis {
     private let tagger = NLTagger(tagSchemes: [.sentimentScore])
     
     public func runSentimentAnalysis(all:Bool = false) async throws {
-        print("Run sentiment analysis")
+        print("Running sentiment analysis")
         var mongoDB : MongoDBHandler? = nil
         
         do {
@@ -34,12 +34,10 @@ struct SentimentAnalysis {
             var text = try document.get().text
             text = text.replacingOccurrences(of: "\\r?\\n", with: "", options: .regularExpression)
             tagger.string = text
-//            tagger.setLanguage(.german, range: text.startIndex..<text.endIndex)
             let sentimentScore = tagger.tag(at: text.startIndex, unit: .paragraph, scheme: .sentimentScore)
             if sentimentScore.0 != nil {
                 var new_doc = try document.get()
                 new_doc.sentiment = Float16(sentimentScore.0!.rawValue)
-                print(new_doc.sentiment!)
                 try mongoDB!.update(document: new_doc)
             }
         }

@@ -142,8 +142,6 @@ struct BlueskyRequestHandler {
         feedRequest.httpMethod = "GET"
         feedRequest.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         
-        print("Fetching feed for account: \(targetDID)")
-        
         var returnValue: AccountFeed? = nil
         
         group.enter()
@@ -165,12 +163,7 @@ struct BlueskyRequestHandler {
                 group.leave()
             }
             
-            if let jsonObject = try? JSONSerialization.jsonObject(with: data!),
-                      let prettyData = try? JSONSerialization.data(withJSONObject: jsonObject, options: .prettyPrinted),
-                      let prettyString = String(data: prettyData, encoding: .utf8) {
-                       print("Raw Response:\n\(prettyString)")
-                   }
-             
+            
             do {
                 if httpResponse!.statusCode == 401 {
                     throw BlueskyError.unauthorized("Invalid or expired token")
@@ -183,9 +176,7 @@ struct BlueskyRequestHandler {
                     )
                 }
                 
-                print("Decoding feed response")
                let feedResponse = try JSONDecoder().decode(FeedResponse.self, from: data!)
-                print("Feed Response successfully decoded")
                 
                 let filteredPosts = feedResponse.feed.map { postWrapper in
                     let post = postWrapper.post
@@ -208,6 +199,7 @@ struct BlueskyRequestHandler {
                     lastChecked: feedResponse.cursor,
                     posts: filteredPosts
                 )
+                print("Cursor: \(feedResponse.cursor)")
                 group.leave()
             } catch let decodingError as DecodingError {
                 print("Decoding error: \(decodingError)")

@@ -55,11 +55,12 @@ struct BlueskyCrawler {
    
     private var token: String? = nil
     
-    public func run(limit:Int) async throws {
+    public func run() async throws {
         var errorMsg : String = ""
         var sourceAccount: String? = nil
         var targetAccounts: [String]? = nil
         var appPassword: String? = nil
+        let limit = UserDefaults.standard.integer(forKey: "limit")
          
         sourceAccount = Credentials.shared.getUsername()
         appPassword = Credentials.shared.getPassword()
@@ -116,7 +117,6 @@ struct BlueskyCrawler {
                 print("Cannot resolve \(targetAccount)")
                 return
             }
-            
             
             let feed = blueskyRequestHandler.fetchFeed(for: targetDid!, token: token!, limit: limit)
             
