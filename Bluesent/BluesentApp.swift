@@ -6,10 +6,12 @@
 //
 
 import SwiftUI
+import Security
 
 @main
 struct BluesentApp: App {
     var body: some Scene {
+        let _ = KeychainHelper.shared.getPassword()
         WindowGroup {
             ContentView()
         }

@@ -133,9 +133,14 @@ struct BlueskyRequestHandler {
         return returnValue
     }
     
-    public func fetchFeed(for targetDID: String, token: String, limit: Int) -> AccountFeed? {
+    public func fetchFeed(for targetDID: String, token: String, limit: Int, cursor:String) -> AccountFeed? {
         let feedRequestURL = "https://api.bsky.social/xrpc/app.bsky.feed.getAuthorFeed"
-        let url = feedRequestURL + "?actor=\(targetDID)&limit=\(limit)"
+        var url = ""
+        if cursor == "" {
+            url = feedRequestURL + "?actor=\(targetDID)&limit=\(limit)"
+        } else {
+            url = feedRequestURL + "?actor=\(targetDID)&limit=\(limit)&cursor=\(cursor)"
+        }
         var feedRequest = URLRequest(url: URL(string: url)!)
         let group = DispatchGroup()
         
@@ -163,6 +168,7 @@ struct BlueskyRequestHandler {
                 group.leave()
             }
             
+//            prettyPrintJSON(data: data!)
             
             do {
                 if httpResponse!.statusCode == 401 {
@@ -178,7 +184,11 @@ struct BlueskyRequestHandler {
                 
                let feedResponse = try JSONDecoder().decode(FeedResponse.self, from: data!)
                 
-                let filteredPosts = feedResponse.feed.map { postWrapper in
+               let filteredPosts = feedResponse.feed
+                    .filter { postWrapper in
+                        postWrapper.post.author.did == targetDID  // Keep only posts from the target DID
+                      }
+                    .map { postWrapper in
                     let post = postWrapper.post
                     return CrawlerResponse(
                         author: post.author.displayName,
@@ -187,19 +197,18 @@ struct BlueskyRequestHandler {
                         createdAt: post.record.createdAt,
                         likeCount: post.likeCount,
                         quoteCount: post.quoteCount,
-                        replyCount: post.replyCount,
                         repostCount: post.repostCount,
                         record: post.record.text,
                         title: post.record.embed?.external?.title,
-                        uri: post.uri
+                        uri: post.uri,
+                        replies:nil
                     )
                 }
                 
                 returnValue = AccountFeed(
-                    lastChecked: feedResponse.cursor,
+                    cursor: feedResponse.cursor,
                     posts: filteredPosts
                 )
-                print("Cursor: \(feedResponse.cursor)")
                 group.leave()
             } catch let decodingError as DecodingError {
                 print("Decoding error: \(decodingError)")

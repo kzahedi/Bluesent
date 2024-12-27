@@ -29,5 +29,10 @@ extension Date {
 
         return calendar.date(from: components)!
     }
+    
+    func toCursor() -> String {
+        return ISO8601DateFormatter().string(from: self)
+    }
+    
 
 }

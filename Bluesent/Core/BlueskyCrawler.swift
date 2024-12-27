@@ -61,6 +61,7 @@ struct BlueskyCrawler {
         var targetAccounts: [String]? = nil
         var appPassword: String? = nil
         let limit = UserDefaults.standard.integer(forKey: "limit")
+        let firstDate = UserDefaults.standard.object(forKey: "scrapingDate") as! Date
          
         sourceAccount = Credentials.shared.getUsername()
         appPassword = Credentials.shared.getPassword()
@@ -96,6 +97,7 @@ struct BlueskyCrawler {
         
         let blueskyRequestHandler = BlueskyRequestHandler()
         let token : String? = blueskyRequestHandler.getToken()
+        let update : Bool = UserDefaults.standard.bool(forKey: "update")
         
         if token == nil {
             print("Cannot get token")
@@ -118,19 +120,38 @@ struct BlueskyCrawler {
                 return
             }
             
-            let feed = blueskyRequestHandler.fetchFeed(for: targetDid!, token: token!, limit: limit)
+            var cursor = Date().toCursor()
             
-            if feed == nil {
-                print("Cannot fetch feed")
-                return
-            } else {
-                do {
-                    try mongoDB!.savePosts(feed: feed!)
-                } catch {
-                    print(error)
+            while true {
+                var ok = true
+                let feed = blueskyRequestHandler.fetchFeed(for: targetDid!, token: token!, limit: limit, cursor:cursor)
+                
+                if feed == nil {
+                    print("Feed completed")
+                    break
+                } else {
+                    do {
+                        ok = try mongoDB!.savePosts(feed: feed!)
+                        if ok == false && update == false {
+                            print("ok is false")
+                            break
+                        }
+                    } catch {
+                        print(error)
+                    }
                 }
+                let cursorDate = convertToDate(from: feed!.cursor)
+                if cursorDate == nil {
+                    print("Problem with \(feed!.cursor)")
+                    break
+                }
+                if cursorDate! < firstDate {
+                    break
+                }
+                cursor = feed!.cursor
             }
         }
+//        try await blueskyRequestHandler.getReplies()
         try await SentimentAnalysis().runSentimentAnalysis()
     }
 }

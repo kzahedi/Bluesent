@@ -15,3 +15,31 @@ func prettyPrintJSON(data: Data) {
     }
 }
 
+func convertToDate(from isoString: String) -> Date? {
+    let isoFormatter = ISO8601DateFormatter()
+    isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    isoFormatter.timeZone = TimeZone(secondsFromGMT: 0)
+
+    let normalizedString = isoString.trimmingCharacters(in: .whitespacesAndNewlines)
+
+    // Debugging: Print character details
+//    print("Input String: '\(isoString)'")
+//    print("Normalized String: '\(normalizedString)'")
+//    for (index, char) in normalizedString.enumerated() {
+//        print("Char \(index): '\(char)' (ASCII: \(char.asciiValue ?? 0))")
+//    }
+
+    // Attempt ISO8601 parsing
+    if let date = isoFormatter.date(from: normalizedString) {
+        return date
+    }
+
+    // Fallback to manual DateFormatter
+    let fallbackFormatter = DateFormatter()
+    fallbackFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"
+    fallbackFormatter.locale = Locale(identifier: "en_US_POSIX")
+    fallbackFormatter.timeZone = TimeZone(secondsFromGMT: 0)
+
+    return fallbackFormatter.date(from: normalizedString)
+}
+

@@ -22,7 +22,6 @@ struct PostWrapper: Codable {
     let record: Record
     let repostCount: Int
     let likeCount: Int
-    let replyCount: Int
     let indexedAt: String
     let quoteCount: Int
     let title: String?
@@ -69,33 +68,17 @@ struct CrawlerResponse: Codable {
     let createdAt: String
     let likeCount: Int
     let quoteCount: Int
-    let replyCount: Int
     let repostCount: Int
     let record: String
     let title: String?
     let uri: String
+    let replies: [CrawlerResponse]?
 }
 
 
 
 struct AccountFeed: Codable {
-    let lastChecked: String
+    let cursor: String
     let posts: [CrawlerResponse]
-}
-
-
-struct MongoDBDocument: Codable {
-    var _id: String  // Using post URI as unique identifier
-    var author: String
-    var createdAt: String
-    var likeCount: Int
-    var quoteCount: Int
-    var replyCount: Int
-    var repostCount: Int
-    var text: String
-    var title: String?
-    var handle: String
-    var fetchedAt: Date
-    var sentiment: Float16?
 }
 

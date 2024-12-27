@@ -13,7 +13,8 @@ struct CrawlerSettings: View {
     @State var date: Date = Date()
     @State var iLimit: Int = 100
     @State var limit: String = "100"
-    
+    @State var update: Bool = false
+
     var body: some View {
         Form {
             Section {
@@ -48,6 +49,18 @@ struct CrawlerSettings: View {
                         .onAppear() {
                             iLimit = UserDefaults.standard.integer(forKey: "limit")
                             limit = String(iLimit)
+                        }
+                }
+                HStack {
+                    
+                    Toggle(isOn: $update) {
+                        Text("Force update")
+                    }
+                        .onChange(of: update) {
+                                UserDefaults.standard.set(update, forKey: "update")
+                            }
+                        .onAppear() {
+                            update = UserDefaults.standard.bool(forKey: "update")
                         }
                 }
             }

@@ -29,9 +29,15 @@ struct ProfileSettingsView: View {
                     if isPasswordVisible {
                         TextField("Password", text: $password)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .onAppear(){
+                                loadPassword()
+                            }
                     } else {
                         SecureField("Password", text: $password)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .onAppear(){
+                                loadPassword()
+                            }
                     }
                     Button(action: {
                         isPasswordVisible.toggle()
@@ -52,7 +58,14 @@ struct ProfileSettingsView: View {
     }
 
     private func loadStoredCredentials() {
+        loadPassword()
+        loadUsername()
+    }
+    
+    private func loadUsername(){
         username = UserDefaults.standard.string(forKey: "username") ?? ""
+    }
+    private func loadPassword(){
         password = KeychainHelper.shared.getPassword() ?? ""
     }
 

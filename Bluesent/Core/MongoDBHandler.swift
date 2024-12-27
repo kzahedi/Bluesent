@@ -23,16 +23,16 @@ class MongoDBHandler {
         // try posts.createIndex(["_id": 1], indexOptions: IndexOptions(unique: true))
     }
     
-    public func savePosts(feed: AccountFeed) throws {
-        print("Uploading \(feed.posts.count) posts to MongoDB")
+    public func savePosts(feed: AccountFeed) throws -> Bool {
         for post in feed.posts {
             let document = MongoDBDocument(
                 _id: post.uri,
                 author: post.author,
+                did:post.did,
                 createdAt: post.createdAt,
                 likeCount: post.likeCount,
                 quoteCount: post.quoteCount,
-                replyCount: post.replyCount,
+                repliesCount: nil,
                 repostCount: post.repostCount,
                 text: post.record,
                 title: post.title,
@@ -46,6 +46,10 @@ class MongoDBHandler {
                 let filter: BSONDocument = ["_id": .string(document._id)]
                 let update: BSONDocument = ["$set": .document(try BSONEncoder().encode(document))]
                 
+                if try posts.findOne(filter) != nil {
+                    return false
+                }
+                
                 // Use updateOne with upsert to avoid duplicates
                 try posts.updateOne(
                     filter: filter,
@@ -57,6 +61,7 @@ class MongoDBHandler {
                 print("Failed to save post \(document._id): \(error)")
             }
         }
+        return true
     }
     
     public func update(document:MongoDBDocument) throws {
