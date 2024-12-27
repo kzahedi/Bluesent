@@ -52,7 +52,7 @@ enum BlueskyError: Error {
 
 
 struct BlueskyCrawler {
-   
+    
     private var token: String? = nil
     
     public func run() async throws {
@@ -62,7 +62,7 @@ struct BlueskyCrawler {
         var appPassword: String? = nil
         let limit = UserDefaults.standard.integer(forKey: "limit")
         let firstDate = UserDefaults.standard.object(forKey: "scrapingDate") as! Date
-         
+        
         sourceAccount = Credentials.shared.getUsername()
         appPassword = Credentials.shared.getPassword()
         targetAccounts = UserDefaults.standard.stringArray(forKey: "targetAccounts")
@@ -71,7 +71,7 @@ struct BlueskyCrawler {
         } else {
             print("No target accounts given")
         }
-       
+        
         if sourceAccount == nil || sourceAccount!.isEmpty{
             errorMsg += "Source account is missing.\n"
         }
@@ -90,68 +90,146 @@ struct BlueskyCrawler {
             return
         }
         
-        print("Running Scraper with following parameters")
-        print("  Target accounts: \(targetAccounts!)")
-        print("  App password:    \(appPassword!)")
-        print("  Limit:           \(limit)")
-        
         let blueskyRequestHandler = BlueskyRequestHandler()
-        let token : String? = blueskyRequestHandler.getToken()
+        let sourceDID = resolveDID(handle: sourceAccount!)
+        let bskyToken : String? = getToken(sourceDID: sourceDID!)
         let update : Bool = UserDefaults.standard.bool(forKey: "update")
         
-        if token == nil {
+        if bskyToken == nil {
             print("Cannot get token")
             return
         }
         
-        var mongoDB : MongoDBHandler? = nil
         
-        do {
-            mongoDB = try MongoDBHandler()
-        } catch {
-            print(error)
-        }
-        
-        for targetAccount in targetAccounts! {
-            let targetDid: String? = blueskyRequestHandler.resolveDID(handle: targetAccount)
-            
-            if targetDid == nil {
-                print("Cannot resolve \(targetAccount)")
-                return
-            }
-            
-            var cursor = Date().toCursor()
-            
-            while true {
-                var ok = true
-                let feed = blueskyRequestHandler.fetchFeed(for: targetDid!, token: token!, limit: limit, cursor:cursor)
-                
-                if feed == nil {
-                    print("Feed completed")
-                    break
-                } else {
-                    do {
-                        ok = try mongoDB!.savePosts(feed: feed!)
-                        if ok == false && update == false {
-                            print("ok is false")
-                            break
-                        }
-                    } catch {
-                        print(error)
-                    }
-                }
-                let cursorDate = convertToDate(from: feed!.cursor)
-                if cursorDate == nil {
-                    print("Problem with \(feed!.cursor)")
-                    break
-                }
-                if cursorDate! < firstDate {
-                    break
-                }
-                cursor = feed!.cursor
-            }
-        }
-//        try await blueskyRequestHandler.getReplies()
+        var targetDIDs : [String] = targetAccounts!.map{resolveDID(handle: $0)!}
+        try blueskyRequestHandler.updateFeeds(targetDIDs:targetDIDs, bskyToken:bskyToken!, limit:limit, update:update, earliestDate:firstDate)
+       
+        //        try await blueskyRequestHandler.getReplies()
         try await SentimentAnalysis().runSentimentAnalysis()
     }
+    
+    public func resolveDID(handle: String) -> String? {
+        let didURL = "https://bsky.social/xrpc/com.atproto.identity.resolveHandle"
+        let group = DispatchGroup()
+        let url = URL(string: "\(didURL)?handle=\(handle)")
+        
+        if url == nil {
+            print("Not an URL: \(didURL)?handle=\(handle)")
+            return nil
+        }
+        
+        var request = URLRequest(url: url!)
+        request.httpMethod = "GET"
+        
+        var returnValue : String? = nil
+        
+        group.enter()
+        let task = URLSession.shared.dataTask(with: request) { data, response, error in
+            if error != nil {
+                print("Error resolving handle: \(error!)")
+                group.leave()
+            }
+            
+            if data == nil {
+                print("No data received")
+                group.leave()
+            }
+            
+            // Log raw response for debugging
+            if let jsonString = String(data: data!, encoding: .utf8) {
+                print("Raw Handle Response: \(jsonString)")
+            }
+            
+            do {
+                // Check for error response
+                if let errorResponse = try? JSONDecoder().decode(ErrorResponse.self, from: data!) {
+                    print("Error: \(errorResponse.error)")
+                    if let message = errorResponse.message {
+                        print("Message: \(message)")
+                    }
+                    group.leave()
+                }
+                
+                let handleResponse = try JSONDecoder().decode(HandleResponse.self, from: data!)
+                returnValue = handleResponse.did
+                group.leave()
+            } catch {
+                print("Error decoding handle response: \(error.localizedDescription)")
+                group.leave()
+            }
+        }
+        
+        task.resume()
+        group.wait()
+        return returnValue
+    }
+    
+    public func getToken(sourceDID: String) -> String? {
+        let apiKeyURL = "https://bsky.social/xrpc/com.atproto.server.createSession"
+        let group = DispatchGroup()
+        let tokenPayload: [String: Any] = [
+            "identifier": sourceDID,
+            "password": Credentials.shared.getPassword() ?? ""
+        ]
+        
+        guard let tokenData = try? JSONSerialization.data(withJSONObject: tokenPayload) else {
+            print("Error creating JSON payload")
+            return nil
+        }
+        
+        var tokenRequest = URLRequest(url: URL(string: apiKeyURL)!)
+        tokenRequest.httpMethod = "POST"
+        tokenRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        tokenRequest.httpBody = tokenData
+        
+        print("Requesting token with DID: \(sourceDID) and Password")
+        
+        var returnValue : String? = nil
+        
+        group.enter()
+        let tokenTask = URLSession.shared.dataTask(with: tokenRequest) { data, response, error in
+            if let error = error {
+                print("Error getting token: \(error)")
+                group.leave()
+            }
+            
+            if data == nil {
+                print("No data received")
+                group.leave()
+            }
+            
+            // Log the raw JSON response
+            if let jsonString = String(data: data!, encoding: .utf8) {
+                print("Raw Token Response: \(jsonString)")
+            } else {
+                print("Cannot decode JSON")
+                group.leave()
+            }
+            
+            
+            do {
+                // Check for error response
+                if let errorResponse = try? JSONDecoder().decode(ErrorResponse.self, from: data!) {
+                    print("Error: \(errorResponse.error)")
+                    if let message = errorResponse.message {
+                        print("Message: \(message)")
+                    }
+                    group.leave()
+                }
+                
+                // Decode the token response
+                let tokenResponse = try JSONDecoder().decode(TokenResponse.self, from: data!)
+                returnValue = tokenResponse.accessJwt
+                group.leave()
+            } catch {
+                print("Error decoding token response: \(error)")
+                group.leave()
+            }
+        }
+        tokenTask.resume()
+        group.wait()
+        return returnValue
+    }
+    
+    
 }
