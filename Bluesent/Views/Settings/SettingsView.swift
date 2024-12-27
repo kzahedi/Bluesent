@@ -27,6 +27,11 @@ struct SettingsView: View {
                     Label("Crawler Settings", systemImage: "hand.raised")
                 }
             
+            AnalyticsSettings()
+                .tabItem {
+                    Label("Analytics Settings", systemImage: "hand.raised")
+                }
+            
             PrivacySettingsView()
                 .tabItem {
                     Label("MongoDB Settings", systemImage: "hand.raised")

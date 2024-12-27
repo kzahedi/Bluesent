@@ -13,7 +13,8 @@ struct CrawlerSettings: View {
     @State var date: Date = Date()
     @State var iLimit: Int = 100
     @State var limit: String = "100"
-    @State var update: Bool = false
+    @State var updateFeed: Bool = false
+    @State var updateReplies: Bool = false
 
     var body: some View {
         Form {
@@ -49,17 +50,29 @@ struct CrawlerSettings: View {
                             limit = String(iLimit)
                         }
                 }
+                
                 HStack {
-                    
-                    Toggle(isOn: $update) {
-                        Text("Force update")
+                    Toggle(isOn: $updateFeed) {
+                        Text("Force update feed")
                     }
-                        .onChange(of: update) {
-                                UserDefaults.standard.set(update, forKey: "update")
-                            }
-                        .onAppear() {
-                            update = UserDefaults.standard.bool(forKey: "update")
-                        }
+                    .onChange(of: updateFeed) {
+                        UserDefaults.standard.set(updateFeed, forKey: "update feed")
+                    }
+                    .onAppear() {
+                        updateFeed = UserDefaults.standard.bool(forKey: "update feed")
+                    }
+                }
+                
+                HStack {
+                    Toggle(isOn: $updateReplies) {
+                        Text("Force update replies")
+                    }
+                    .onChange(of: updateReplies) {
+                        UserDefaults.standard.set(updateReplies, forKey: "update replies")
+                    }
+                    .onAppear() {
+                        updateReplies = UserDefaults.standard.bool(forKey: "update replies")
+                    }
                 }
             }
         }
@@ -67,7 +80,6 @@ struct CrawlerSettings: View {
         .onAppear() {
             initialiseValues()
         }
-        
     }
     
     private func initialiseValues() {
@@ -87,7 +99,8 @@ struct CrawlerSettings: View {
             let d = date.setToStartOfDay()
             UserDefaults.standard.set(d, forKey: "scrapingDate")
         }
-        
+        updateReplies = UserDefaults.standard.bool(forKey: "update replies")
+        updateFeed = UserDefaults.standard.bool(forKey: "update feed")
     }
 }
 

@@ -14,6 +14,7 @@ struct SentimentAnalysis {
     
     public func runSentimentAnalysis(all:Bool = false) async throws {
         print("Running sentiment analysis")
+        let update : Bool = UserDefaults.standard.bool(forKey: "update")
         var mongoDB : MongoDBHandler? = nil
         
         do {
@@ -24,7 +25,7 @@ struct SentimentAnalysis {
         }
         
         var cursor : MongoCursor<MongoDBDocument>? = nil;
-        if all {
+        if all || update {
             cursor  = try mongoDB!.posts.find([:])
         } else {
             cursor  = try mongoDB!.posts.find(["sentiment": ["$exists": false]])
@@ -41,6 +42,7 @@ struct SentimentAnalysis {
                 try mongoDB!.update(document: new_doc)
             }
         }
+        print("Done with sentiment analysis")
     }
 }
 

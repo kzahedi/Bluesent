@@ -15,8 +15,8 @@ class Credentials {
     private init() {}
 
     // MARK: - Read Username
-    func getUsername() -> String {
-        return UserDefaults.standard.string(forKey: usernameKey) ?? ""
+    func getUsername() -> String? {
+        return UserDefaults.standard.string(forKey: usernameKey)
     }
 
     // MARK: - Read Password

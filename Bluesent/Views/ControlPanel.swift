@@ -9,11 +9,27 @@ import SwiftUI
 
 struct ControlPanel: View {
     
+    let blueskyCrawler = BlueskyCrawler()
+    
     var body: some View {
         VStack(alignment: .leading){
-            Button("Run Crawler") {
+            Button("Run Feed Crawler") {
                 do {
-                    try runCrawler()
+                    try runFeedCrawler()
+                } catch {
+                    print(error)
+                }
+            }
+            Button("Run Replies Crawler") {
+                do {
+                    try runRepliesCrawler()
+                } catch {
+                    print(error)
+                }
+            }
+            Button("Run Sentiment Analysis") {
+                do {
+                    try runSentimentAnalysis()
                 } catch {
                     print(error)
                 }
@@ -22,12 +38,26 @@ struct ControlPanel: View {
         .frame(width:250)
     }
     
-    func runCrawler() throws {
-        let blueskyCrawler = BlueskyCrawler()
+    func runFeedCrawler() throws {
         Task {
-            try await blueskyCrawler.run()
+            try await blueskyCrawler.runFeedsScraper()
         }
     }
+    
+    func runRepliesCrawler() throws {
+        Task {
+            print("hier 0")
+            try await blueskyCrawler.runRepliesCrawler()
+            print("hier 1")
+        }
+    }
+    
+    func runSentimentAnalysis() throws {
+        Task {
+            try await SentimentAnalysis().runSentimentAnalysis()
+        }
+    }
+
 }
 
 #Preview {

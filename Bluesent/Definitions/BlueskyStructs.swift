@@ -13,10 +13,19 @@ struct FeedResponse: Codable {
 }
 
 struct FeedItem: Codable {
-    let post: PostWrapper
+    let post: Post
 }
 
-struct PostWrapper: Codable {
+struct ThreadResponse: Codable {
+    let thread: Thread
+}
+
+struct Thread: Codable {
+    let post: Post
+    let replies : [Thread]?
+}
+
+struct Post: Codable {
     let uri: String
     let author: Author
     let record: Record
@@ -24,7 +33,9 @@ struct PostWrapper: Codable {
     let likeCount: Int
     let indexedAt: String
     let quoteCount: Int
+    let replyCount: Int
     let title: String?
+    let replies: [Post]?
 }
 
 struct Record: Codable {
@@ -57,28 +68,11 @@ struct Author: Codable {
     let handle: String
     let displayName: String
     let did: String
-    let avatar: String
     let createdAt: String
 }
-
-struct CrawlerResponse: Codable {
-    let author: String
-    let handle: String
-    let did: String
-    let createdAt: String
-    let likeCount: Int
-    let quoteCount: Int
-    let repostCount: Int
-    let record: String
-    let title: String?
-    let uri: String
-    let replies: [CrawlerResponse]?
-}
-
-
 
 struct AccountFeed: Codable {
     let cursor: String
-    let posts: [CrawlerResponse]
+    let posts: [MongoDBDocument]
 }
 
