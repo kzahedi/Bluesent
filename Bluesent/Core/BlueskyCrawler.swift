@@ -62,10 +62,6 @@ struct BlueskyParameters {
     public var bskyToken : String? = nil
     
     
-    public init(){
-        update()
-    }
-    
     public mutating func update() {
         var errorMsg : String = ""
         let sa = Credentials.shared.getUsername()
@@ -123,6 +119,7 @@ class BlueskyCrawler {
     }
     
     public func updateParameters() {
+        self.parameters.update()
         self.parameters.sourceDID = resolveDID(handle: parameters.sourceAccount)
         self.parameters.bskyToken = getToken(sourceDID: parameters.sourceDID!)
         self.parameters.targetDIDs = parameters.targetAccounts.map{resolveDID(handle: $0)!}

@@ -9,7 +9,6 @@ import SwiftUI
 
 struct ControlPanel: View {
     
-    let blueskyCrawler = BlueskyCrawler()
     
     var body: some View {
         VStack(alignment: .leading){
@@ -40,15 +39,15 @@ struct ControlPanel: View {
     
     func runFeedCrawler() throws {
         Task {
+            let blueskyCrawler = BlueskyCrawler()
             try await blueskyCrawler.runFeedsScraper()
         }
     }
     
     func runRepliesCrawler() throws {
         Task {
-            print("hier 0")
+            let blueskyCrawler = BlueskyCrawler()
             try await blueskyCrawler.runRepliesCrawler()
-            print("hier 1")
         }
     }
     
