@@ -6,7 +6,7 @@
 //
 import Foundation
 
-struct BlueskyRequestHandler {
+struct BlueskyFeedHandler {
     
     public func fetchFeed(for targetDID: String, bskyToken: String, limit: Int, cursor:String) -> AccountFeed? {
         let feedRequestURL = "https://api.bsky.social/xrpc/app.bsky.feed.getAuthorFeed"
@@ -119,13 +119,29 @@ struct BlueskyRequestHandler {
                 let feed = fetchFeed(for: targetDID, bskyToken: bskyToken, limit: limit, cursor:cursor)
                 
                 if feed == nil {
-                    print("Feed completed")
+//                    print("Feed completed")
                     break
                 } else {
                     do {
-                        ok = try mongoDB!.savePosts(feed: feed!)
+                        let mongoDocuments : [MongoDBDocument] = feed!.posts.map{
+                            MongoDBDocument(
+                                _id: $0.uri,
+                                author: $0.author,
+                                did:$0.did,
+                                createdAt: $0.createdAt,
+                                likeCount: $0.likeCount,
+                                quoteCount: $0.quoteCount,
+                                repliesCount: nil,
+                                repostCount: $0.repostCount,
+                                text: $0.record,
+                                title: $0.title,
+                                handle: $0.handle,
+                                fetchedAt: Date(),
+                                sentiment: nil)
+                        }
+                        ok = try mongoDB!.saveDocuments(documents: mongoDocuments)
                         if ok == false && update == false {
-                            print("ok is false")
+//                            print("ok is false")
                             break
                         }
                     } catch {

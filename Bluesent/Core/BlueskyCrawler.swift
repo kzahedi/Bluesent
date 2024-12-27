@@ -90,7 +90,7 @@ struct BlueskyCrawler {
             return
         }
         
-        let blueskyRequestHandler = BlueskyRequestHandler()
+        let blueskyFeedHandler = BlueskyFeedHandler()
         let sourceDID = resolveDID(handle: sourceAccount!)
         let bskyToken : String? = getToken(sourceDID: sourceDID!)
         let update : Bool = UserDefaults.standard.bool(forKey: "update")
@@ -100,11 +100,10 @@ struct BlueskyCrawler {
             return
         }
         
-        
         var targetDIDs : [String] = targetAccounts!.map{resolveDID(handle: $0)!}
-        try blueskyRequestHandler.updateFeeds(targetDIDs:targetDIDs, bskyToken:bskyToken!, limit:limit, update:update, earliestDate:firstDate)
+        try blueskyFeedHandler.updateFeeds(targetDIDs:targetDIDs, bskyToken:bskyToken!, limit:limit, update:update, earliestDate:firstDate)
        
-        //        try await blueskyRequestHandler.getReplies()
+        //        try await blueskyFeedHandler.getReplies()
         try await SentimentAnalysis().runSentimentAnalysis()
     }
     
@@ -136,9 +135,9 @@ struct BlueskyCrawler {
             }
             
             // Log raw response for debugging
-            if let jsonString = String(data: data!, encoding: .utf8) {
-                print("Raw Handle Response: \(jsonString)")
-            }
+//            if let jsonString = String(data: data!, encoding: .utf8) {
+//                print("Raw Handle Response: \(jsonString)")
+//            }
             
             do {
                 // Check for error response
@@ -182,7 +181,7 @@ struct BlueskyCrawler {
         tokenRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
         tokenRequest.httpBody = tokenData
         
-        print("Requesting token with DID: \(sourceDID) and Password")
+//        print("Requesting token with DID: \(sourceDID) and Password")
         
         var returnValue : String? = nil
         
@@ -197,15 +196,6 @@ struct BlueskyCrawler {
                 print("No data received")
                 group.leave()
             }
-            
-            // Log the raw JSON response
-            if let jsonString = String(data: data!, encoding: .utf8) {
-                print("Raw Token Response: \(jsonString)")
-            } else {
-                print("Cannot decode JSON")
-                group.leave()
-            }
-            
             
             do {
                 // Check for error response

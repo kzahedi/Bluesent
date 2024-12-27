@@ -25,12 +25,10 @@ struct CrawlerSettings: View {
                     .datePickerStyle(.field)
                     .onChange(of: date) {
                         let d = date.setToStartOfDay()
-                        print("Setting date to \(d)")
                         UserDefaults.standard.set(d, forKey: "scrapingDate")
                     }
                     .onAppear() {
                         date = UserDefaults.standard.object(forKey: "scrapingDate") as! Date
-                        print("Reading date \(date)")
                     }
                 }
                 
