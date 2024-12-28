@@ -9,7 +9,7 @@ import MongoSwiftSync
 
 struct BlueskyRepliesHandler {
     
-     public func updateReplies(bskyToken:String, limit:Int, update:Bool = false, earliestDate:Date? = nil) throws {
+    public func updateReplies(bskyToken:String, limit:Int, update:Bool = false, earliestDate:Date? = nil) throws {
         let threadRequestURL = "https://api.bsky.social/xrpc/app.bsky.feed.getPostThread?depth=1000&uri="
         var mongoDB : MongoDBHandler? = nil
         mongoDB = try MongoDBHandler()
@@ -21,11 +21,13 @@ struct BlueskyRepliesHandler {
             cursor  = try mongoDB!.posts.find([:])
         } else {
             cursor  = try mongoDB!.posts.find([
+                "replyCount" : ["$gt": 0],
                 "$or" : [
                     "replies": ["$exists": false],
                     "replies.0": ["$exists": false]
                 ]])
         }
+        
         for document in cursor! {
             let uri = try document.get()._id
             let url = threadRequestURL + uri
@@ -75,6 +77,8 @@ struct BlueskyRepliesHandler {
                     )
                 }
                 
+//                prettyPrintJSON(data: data!)
+                
                 let thread = try JSONDecoder().decode(ThreadResponse.self, from: data!)
                 
                 returnValue = extractDocumentFrom(thread: thread.thread)
@@ -95,18 +99,16 @@ struct BlueskyRepliesHandler {
         group.wait()
         return returnValue
     }
-   
+    
     public func extractDocumentFrom(thread:Thread) -> MongoDBDocument {
         let post = thread.post
-        print("Working on \(post.uri)")
+//        print("Working on \(post.uri)")
         let replies = thread.replies ?? []
         var doc = postToDoc(post)
         var r : [MongoDBDocument] = []
-        if post.replies != nil{
-            for reply in replies {
-                let new_doc : MongoDBDocument = extractDocumentFrom(thread: reply)
-                r.append(new_doc)
-            }
+        for reply in replies {
+            let new_doc : MongoDBDocument = extractDocumentFrom(thread: reply)
+            r.append(new_doc)
         }
         doc.replies = r
         return doc
@@ -168,7 +170,7 @@ struct BlueskyRepliesHandler {
                         postWrapper.post.author.did == targetDID  // Keep only posts from the target DID
                     }
                     .map { postWrapper in postToDoc(postWrapper.post)}
-               
+                
                 returnValue = AccountFeed(
                     cursor: feedResponse.cursor,
                     posts: filteredPosts
@@ -205,13 +207,13 @@ struct BlueskyRepliesHandler {
                 let feed = fetchFeed(for: targetDID, bskyToken: bskyToken, limit: limit, cursor:cursor)
                 
                 if feed == nil {
-//                    print("Feed completed")
+                    //                    print("Feed completed")
                     break
                 } else {
                     do {
                         ok = try mongoDB!.saveDocuments(documents: feed!.posts)
                         if ok == false && update == false {
-//                            print("ok is false")
+                            //                            print("ok is false")
                             break
                         }
                     } catch {
