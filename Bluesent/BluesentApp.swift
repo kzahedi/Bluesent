@@ -45,7 +45,11 @@ struct BluesentApp: App {
             }
             Menu("Analytics") {
                 Button("Posts per Day") {
-//                    showSettings = true
+                    do {
+                        try Statistics().postsPerDay()
+                    } catch {
+                        print(error)
+                    }
                 }
             }
             Divider()
