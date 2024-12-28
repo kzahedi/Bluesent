@@ -24,7 +24,7 @@ struct SentimentAnalysis {
             return
         }
         
-        var cursor : MongoCursor<MongoDBDocument>? = nil;
+        var cursor : MongoCursor<ReplyTreeMDB>? = nil;
         if all || update {
             cursor  = try mongoDB!.posts.find([:])
         } else {
@@ -32,7 +32,7 @@ struct SentimentAnalysis {
         }
         
         for document in cursor! {
-            var doc : MongoDBDocument = try document.get()
+            var doc : ReplyTreeMDB = try document.get()
             if doc.text.count == 0 {
                 doc.sentiment = 0.0
             } else {
@@ -43,7 +43,7 @@ struct SentimentAnalysis {
         print("Done with sentiment analysis")
     }
     
-    private func calculateSentiment(doc: inout MongoDBDocument) -> Void {
+    private func calculateSentiment(doc: inout ReplyTreeMDB) -> Void {
         var text = doc.text
         text = text.replacingOccurrences(of: "\\r?\\n", with: "", options: .regularExpression)
         tagger.string = text
@@ -55,7 +55,7 @@ struct SentimentAnalysis {
         }
     }
     
-    private func modifyReplyTree(_ doc: inout MongoDBDocument, modify : (inout MongoDBDocument) -> Void ) {
+    private func modifyReplyTree(_ doc: inout ReplyTreeMDB, modify : (inout ReplyTreeMDB) -> Void ) {
         modify(&doc)
         if var replies = doc.replies {
             for i in 0..<replies.count {

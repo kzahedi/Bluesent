@@ -6,7 +6,7 @@
 //
 import Foundation
 
-struct MongoDBDocument: Codable {
+struct ReplyTreeMDB: Codable {
     var _id: String  // Using post URI as unique identifier
     var author: String
     var did: String
@@ -20,11 +20,11 @@ struct MongoDBDocument: Codable {
     var handle: String
     var fetchedAt: Date
     var sentiment: Float?
-    var replies: [MongoDBDocument]?
+    var replies: [ReplyTreeMDB]?
 }
 
-func postToDoc(_ post: Post) -> MongoDBDocument {
-    return MongoDBDocument(
+func postToDoc(_ post: Post) -> ReplyTreeMDB {
+    return ReplyTreeMDB(
         _id: post.uri,
         author: post.author.displayName,
         did: post.author.did,
@@ -41,3 +41,17 @@ func postToDoc(_ post: Post) -> MongoDBDocument {
         replies:nil)
 }
 
+struct DailyStatsMDB : Codable {
+    var _id : String // Handle
+    var posts_per_day : [PostsPerDayMDB]
+}
+
+struct PostsPerDayMDB : Codable {
+    var day: Date
+    var count: Int
+    
+    init(day:Date, count:Int){
+        self.day = day
+        self.count = count
+    }
+}

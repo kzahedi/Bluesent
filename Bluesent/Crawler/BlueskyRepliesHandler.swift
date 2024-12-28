@@ -16,7 +16,7 @@ struct BlueskyRepliesHandler {
         
         let update = UserDefaults.standard.bool(forKey: "update sentiments")
         
-        var cursor : MongoCursor<MongoDBDocument>? = nil;
+        var cursor : MongoCursor<ReplyTreeMDB>? = nil;
         if update {
             cursor  = try mongoDB!.posts.find([:])
         } else {
@@ -38,9 +38,9 @@ struct BlueskyRepliesHandler {
         }
     }
     
-    private func getThread(url:String, bskyToken:String) throws -> MongoDBDocument? {
+    private func getThread(url:String, bskyToken:String) throws -> ReplyTreeMDB? {
         var feedRequest = URLRequest(url: URL(string: url)!)
-        var returnValue : MongoDBDocument? = nil
+        var returnValue : ReplyTreeMDB? = nil
         let group = DispatchGroup()
         
         feedRequest.httpMethod = "GET"
@@ -100,14 +100,14 @@ struct BlueskyRepliesHandler {
         return returnValue
     }
     
-    public func extractDocumentFrom(thread:Thread) -> MongoDBDocument {
+    public func extractDocumentFrom(thread:Thread) -> ReplyTreeMDB {
         let post = thread.post
 //        print("Working on \(post.uri)")
         let replies = thread.replies ?? []
         var doc = postToDoc(post)
-        var r : [MongoDBDocument] = []
+        var r : [ReplyTreeMDB] = []
         for reply in replies {
-            let new_doc : MongoDBDocument = extractDocumentFrom(thread: reply)
+            let new_doc : ReplyTreeMDB = extractDocumentFrom(thread: reply)
             r.append(new_doc)
         }
         doc.replies = r

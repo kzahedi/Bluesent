@@ -12,32 +12,33 @@ import MongoSwiftSync
 struct Statistics {
     
     public func postsPerDay() throws {
-        let collection = try MongoDBHandler().posts
+        let mongoDBHandler = try MongoDBHandler()
+        let collection = mongoDBHandler.posts
         do {
             let pipeline: [BSONDocument] = [
                 [
-                           "$addFields": [
-                               "formattedCreatedAt": [
-                                   "$substrBytes": [
-                                       "$createdAt", // original field
-                                       0,            // start at the beginning
-                                       10            // extract the first 10 characters (yyyy-mm-dd)
-                                   ]
-                               ]
-                           ]
-                       ],
-                // Convert the "createdAt" string to a Date object
-                [
-                        "$addFields": [
-                            "createdAtDate": [
-                                "$dateFromString": [
-                                    "dateString": "$formattedCreatedAt",
-                                    "format": "%Y-%m-%d", // Explicitly include the 'Z'
-                                    "timezone": "UTC" // Handle the timezone properly
-                                ]
+                    "$addFields": [
+                        "formattedCreatedAt": [
+                            "$substrBytes": [
+                                "$createdAt", // original field
+                                0,            // start at the beginning
+                                10            // extract the first 10 characters (yyyy-mm-dd)
                             ]
                         ]
-                    ],
+                    ]
+                ],
+                // Convert the "createdAt" string to a Date object
+                [
+                    "$addFields": [
+                        "createdAtDate": [
+                            "$dateFromString": [
+                                "dateString": "$formattedCreatedAt",
+                                "format": "%Y-%m-%d", // Explicitly include the 'Z'
+                                "timezone": "UTC" // Handle the timezone properly
+                            ]
+                        ]
+                    ]
+                ],
                 // Ensure the date conversion was successful and truncate to the day
                 [
                     "$addFields": [
@@ -74,13 +75,29 @@ struct Statistics {
                     ]
                 ]
             ]
-
             
+            var results : [String: DailyStatsMDB] = [:]
             
             let cursor = try collection.aggregate(pipeline)
             for try result in cursor {
                 print(result)
+                let doc = try result.get()
+                let handle = doc["_id"]!.documentValue!["handle"]!.stringValue!
+                let day = doc["_id"]!.documentValue!["day"]!.dateValue!
+                let count = doc["count"]!.toInt()!
+                print("Extracted \(handle) - \(day) - \(count)")
+                let ppd = PostsPerDayMDB(day:day, count:count)
+                if results.keys.contains(handle) == false {
+                    results[handle] = DailyStatsMDB(_id:handle, posts_per_day: [])
+                }
+                results[handle]!.posts_per_day.append(ppd)
             }
+            
+            for handle in results.keys{
+                let ds = results[handle]
+                try mongoDBHandler.update(document:ds!)
+            }
+                    
         } catch {
             print("Error running aggregation: \(error)")
         }
