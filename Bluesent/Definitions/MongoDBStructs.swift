@@ -41,12 +41,14 @@ func postToDoc(_ post: Post) -> ReplyTreeMDB {
         replies:nil)
 }
 
-struct DailyStatsMDB : Codable {
+struct DailyStatsMDB : Codable, Identifiable {
+    var id : UUID = UUID()
     var _id : String // Handle
     var posts_per_day : [PostsPerDayMDB]
 }
 
-struct PostsPerDayMDB : Codable {
+struct PostsPerDayMDB : Codable, Identifiable {
+    var id : UUID = UUID()
     var day: Date
     var count: Int
     

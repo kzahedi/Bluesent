@@ -56,6 +56,32 @@ class MongoDBHandler {
         )
     }
     
+    public func getPostsPerDay(firstDate:Date? = nil, lastDate:Date?=nil) throws -> [DailyStatsMDB] {
+        var ret : [DailyStatsMDB] = []
+        var cursor = try statistics.find([:])
+        for document in cursor {
+            print("Parsing document")
+            var d = try document.get()
+            if firstDate != nil && lastDate != nil {
+                d.posts_per_day = d.posts_per_day
+                    .filter { $0.day >= firstDate! && $0.day <= lastDate! }
+            }
+            if firstDate != nil && lastDate == nil {
+                d.posts_per_day = d.posts_per_day
+                    .filter { $0.day >= firstDate! }
+            }
+            if firstDate == nil && lastDate != nil {
+                d.posts_per_day = d.posts_per_day
+                    .filter { $0.day <= lastDate! }
+            }
+            ret.append(try document.get())
+        }
+        
+        return ret
+    }
+    
+    
+    
     deinit {
         cleanupMongoSwift()
     }

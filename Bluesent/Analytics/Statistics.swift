@@ -80,12 +80,10 @@ struct Statistics {
             
             let cursor = try collection.aggregate(pipeline)
             for try result in cursor {
-                print(result)
                 let doc = try result.get()
                 let handle = doc["_id"]!.documentValue!["handle"]!.stringValue!
                 let day = doc["_id"]!.documentValue!["day"]!.dateValue!
                 let count = doc["count"]!.toInt()!
-                print("Extracted \(handle) - \(day) - \(count)")
                 let ppd = PostsPerDayMDB(day:day, count:count)
                 if results.keys.contains(handle) == false {
                     results[handle] = DailyStatsMDB(_id:handle, posts_per_day: [])
@@ -94,7 +92,9 @@ struct Statistics {
             }
             
             for handle in results.keys{
-                let ds = results[handle]
+                var ds = results[handle]
+                ds!.posts_per_day
+                    .sort{ (($0.day).compare($1.day)) == .orderedDescending }
                 try mongoDBHandler.update(document:ds!)
             }
                     

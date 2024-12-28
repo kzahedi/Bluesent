@@ -11,8 +11,6 @@ import SwiftUI
 struct BluesentApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
-    @State private var showSettings : Bool = false
-    
     var body: some Scene {
         MenuBarExtra("",systemImage: "message.badge.waveform.fill") {
             Menu("Run") {
@@ -47,6 +45,7 @@ struct BluesentApp: App {
                 Button("Posts per Day") {
                     do {
                         try Statistics().postsPerDay()
+                        appDelegate.openPostsPerDay()
                     } catch {
                         print(error)
                     }
@@ -89,6 +88,7 @@ struct BluesentApp: App {
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     var settingsWindow: NSWindow?
+    var postsPerDayWindow: NSWindow?
 
     func openSettingsWindow() {
         if settingsWindow == nil {
@@ -112,5 +112,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.activate(ignoringOtherApps: true)
     }
     
-    
+    func openPostsPerDay() {
+        if postsPerDayWindow == nil {
+            // Create a new SwiftUI-based window for settings
+            let view = PostsPerDayView()
+            postsPerDayWindow = NSWindow(
+                contentRect: NSRect(x: 0, y: 0, width: 1200, height: 800),
+                styleMask: [.titled, .closable],
+                backing: .buffered,
+                defer: false
+            )
+            postsPerDayWindow?.title = "Posts per day"
+            postsPerDayWindow?.contentView = NSHostingView(rootView: view)
+            postsPerDayWindow?.isReleasedWhenClosed = false
+        }
+        // Center the window on the screen
+        postsPerDayWindow?.center()
+         
+        // Show the settings window
+        postsPerDayWindow?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }    
 }
