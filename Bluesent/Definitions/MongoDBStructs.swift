@@ -19,7 +19,7 @@ struct MongoDBDocument: Codable {
     var title: String?
     var handle: String
     var fetchedAt: Date
-    var sentiment: Float16?
+    var sentiment: Float?
     var replies: [MongoDBDocument]?
 }
 

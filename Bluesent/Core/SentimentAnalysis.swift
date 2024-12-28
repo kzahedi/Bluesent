@@ -14,7 +14,7 @@ struct SentimentAnalysis {
     
     public func runSentimentAnalysis(all:Bool = false) async throws {
         print("Running sentiment analysis")
-        let update : Bool = UserDefaults.standard.bool(forKey: "update")
+        let update : Bool = UserDefaults.standard.bool(forKey: "update sentiments")
         var mongoDB : MongoDBHandler? = nil
         
         do {
@@ -30,19 +30,40 @@ struct SentimentAnalysis {
         } else {
             cursor  = try mongoDB!.posts.find(["sentiment": ["$exists": false]])
         }
-
+        
         for document in cursor! {
-            var text = try document.get().text
-            text = text.replacingOccurrences(of: "\\r?\\n", with: "", options: .regularExpression)
-            tagger.string = text
-            let sentimentScore = tagger.tag(at: text.startIndex, unit: .paragraph, scheme: .sentimentScore)
-            if sentimentScore.0 != nil {
-                var new_doc = try document.get()
-                new_doc.sentiment = Float16(sentimentScore.0!.rawValue)
-                try mongoDB!.update(document: new_doc)
+            var doc : MongoDBDocument = try document.get()
+            if doc.text.count == 0 {
+                doc.sentiment = 0.0
+            } else {
+                modifyReplyTree(&doc, modify:calculateSentiment)
             }
+            try mongoDB!.update(document: doc)
         }
         print("Done with sentiment analysis")
+    }
+    
+    private func calculateSentiment(doc: inout MongoDBDocument) -> Void {
+        var text = doc.text
+        text = text.replacingOccurrences(of: "\\r?\\n", with: "", options: .regularExpression)
+        tagger.string = text
+        let sentimentScore = tagger.tag(at: text.startIndex, unit: .paragraph, scheme: .sentimentScore)
+        if sentimentScore.0 != nil {
+            doc.sentiment = Float(sentimentScore.0!.rawValue)
+        } else {
+            doc.sentiment = 0.0
+        }
+    }
+    
+    private func modifyReplyTree(_ doc: inout MongoDBDocument, modify : (inout MongoDBDocument) -> Void ) {
+        modify(&doc)
+        if var replies = doc.replies {
+            for i in 0..<replies.count {
+                modifyReplyTree(&replies[i], modify: modify)
+            }
+            // Update the modified replies back in the parent document
+            doc.replies = replies
+        }
     }
 }
 
