@@ -18,22 +18,10 @@ struct PostsPerDayView: View {
                 ForEach (data!) {d in
                     
                     plotView(d)
+                        .padding()
                     titleView(d)
-                        .offset(y:-100)
-                        .offset(x: 10)
-                    
-                    
-                    //                    VStack {
-                    //                        Text(d._id)
-                    //                            .font(.title)
-                    //                            .fontWeight(.medium)
-                    //                            .foregroundColor(Color.blue)
-                    //                            .multilineTextAlignment(.leading)
-                    //                    }
-                    //                    .frame(maxWidth: 1000, maxHeight: 200)
-                    //                    .offset(y: -130)
-                    //                    .padding(.bottom, -130)
-                    //
+                        .padding()
+                        .offset(y:-150)
                 }
             } else {
                 Text("no data")
