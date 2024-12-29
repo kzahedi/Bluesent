@@ -25,26 +25,47 @@ class MongoDBHandler {
         // try posts.createIndex(["_id": 1], indexOptions: IndexOptions(unique: true))
     }
     
-    public func saveDocuments(documents: [ReplyTreeMDB]) throws -> Bool {
+    public func saveFeedDocuments(documents: [ReplyTreeMDB]) throws -> Bool {
+        var found = false
         for document in documents {
-            let _ = try update(document: document)
+            let r = try updateFeedDocument(document: document)
+            found = found || r
         }
-        return true
+        return found
     }
     
-    public func update(document:ReplyTreeMDB) throws {
+    public func updateFeedDocument(document:ReplyTreeMDB) throws -> Bool {
         let filter: BSONDocument = ["_id": .string(document._id)]
-        let update: BSONDocument = ["$set": .document(try BSONEncoder().encode(document))]
+        var docForUpdate = document
+        var found = false
+        let xDays = UserDefaults.standard.integer(forKey: labelScrapingAutoUpdateDays)
         
-        // Use updateOne with upsert to avoid duplicates
+        let doc = try posts.findOne(filter) // if document is found, only update stats
+        
+        if doc != nil {
+            docForUpdate.likeCount = doc!.likeCount
+            docForUpdate.replyCount = doc!.replyCount
+            docForUpdate.quoteCount = doc!.quoteCount
+            docForUpdate.repostCount = doc!.repostCount
+            docForUpdate.fetchedAt = Date()
+            if docForUpdate.createdAt == nil && doc!.createdAt != nil {
+                docForUpdate.createdAt = doc!.createdAt!
+            }
+            if docForUpdate.createdAt != nil && docForUpdate.createdAt!.isXDaysAgo(x: xDays){
+                found = true
+            }
+        }
+        
+        let update: BSONDocument = ["$set": .document(try BSONEncoder().encode(docForUpdate))]
         try posts.updateOne(
             filter: filter,
             update: update,
             options: UpdateOptions(upsert: true)
         )
+        return found
     }
     
-    public func update(document:DailyStatsMDB) throws {
+    public func updateDailyStats(document:DailyStatsMDB) throws {
         let filter: BSONDocument = ["_id": .string(document._id)]
         let update: BSONDocument = ["$set": .document(try BSONEncoder().encode(document))]
         
@@ -58,9 +79,8 @@ class MongoDBHandler {
     
     public func getPostsPerDay(firstDate:Date? = nil, lastDate:Date?=nil) throws -> [DailyStatsMDB] {
         var ret : [DailyStatsMDB] = []
-        var cursor = try statistics.find([:])
+        let cursor = try statistics.find([:])
         for document in cursor {
-            print("Parsing document")
             var d = try document.get()
             if firstDate != nil && lastDate != nil {
                 d.posts_per_day = d.posts_per_day
@@ -74,7 +94,8 @@ class MongoDBHandler {
                 d.posts_per_day = d.posts_per_day
                     .filter { $0.day <= lastDate! }
             }
-            ret.append(try document.get())
+            d.posts_per_day.sort{ (($0.day).compare($1.day)) == .orderedDescending }
+            ret.append(d)
         }
         
         return ret

@@ -95,7 +95,7 @@ struct Statistics {
                 var ds = results[handle]
                 ds!.posts_per_day
                     .sort{ (($0.day).compare($1.day)) == .orderedDescending }
-                try mongoDBHandler.update(document:ds!)
+                try mongoDBHandler.updateDailyStats(document:ds!)
             }
                     
         } catch {

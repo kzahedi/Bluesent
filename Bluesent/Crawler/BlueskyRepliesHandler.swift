@@ -9,12 +9,12 @@ import MongoSwiftSync
 
 struct BlueskyRepliesHandler {
     
-    public func updateReplies(bskyToken:String, limit:Int, update:Bool = false, earliestDate:Date? = nil) throws {
+    private func updateReplies(bskyToken:String, limit:Int, update:Bool = false, earliestDate:Date? = nil) throws {
         let threadRequestURL = "https://api.bsky.social/xrpc/app.bsky.feed.getPostThread?depth=1000&uri="
         var mongoDB : MongoDBHandler? = nil
         mongoDB = try MongoDBHandler()
         
-        let update = UserDefaults.standard.bool(forKey: "update sentiments")
+        let update = UserDefaults.standard.bool(forKey: labelForceUpdateSentiments)
         
         var cursor : MongoCursor<ReplyTreeMDB>? = nil;
         if update {
@@ -33,7 +33,7 @@ struct BlueskyRepliesHandler {
             let url = threadRequestURL + uri
             let document = try getThread(url: url, bskyToken: bskyToken)
             if document != nil {
-                try mongoDB!.update(document: document!)
+                let _ = try mongoDB!.updateFeedDocument(document: document!)
             }
         }
     }
@@ -77,7 +77,7 @@ struct BlueskyRepliesHandler {
                     )
                 }
                 
-//                prettyPrintJSON(data: data!)
+                //                prettyPrintJSON(data: data!)
                 
                 let thread = try JSONDecoder().decode(ThreadResponse.self, from: data!)
                 
@@ -102,7 +102,7 @@ struct BlueskyRepliesHandler {
     
     public func extractDocumentFrom(thread:Thread) -> ReplyTreeMDB {
         let post = thread.post
-//        print("Working on \(post.uri)")
+        //        print("Working on \(post.uri)")
         let replies = thread.replies ?? []
         var doc = postToDoc(post)
         var r : [ReplyTreeMDB] = []
@@ -192,47 +192,16 @@ struct BlueskyRepliesHandler {
         return returnValue
     }
     
-    
-    public func updateFeeds(targetDIDs:[String], bskyToken:String, limit:Int, update:Bool = false, earliestDate:Date? = nil) throws {
-        
-        var mongoDB : MongoDBHandler? = nil
-        mongoDB = try MongoDBHandler()
-        
-        for targetDID in targetDIDs {
-            
-            var cursor = Date().toCursor()
-            
-            while true {
-                var ok = true
-                let feed = fetchFeed(for: targetDID, bskyToken: bskyToken, limit: limit, cursor:cursor)
-                
-                if feed == nil {
-                    //                    print("Feed completed")
-                    break
-                } else {
-                    do {
-                        ok = try mongoDB!.saveDocuments(documents: feed!.posts)
-                        if ok == false && update == false {
-                            //                            print("ok is false")
-                            break
-                        }
-                    } catch {
-                        print(error)
-                    }
-                }
-                let cursorDate = convertToDate(from: feed!.cursor)
-                if cursorDate == nil {
-                    print("Problem with \(feed!.cursor)")
-                    break
-                }
-                if earliestDate != nil {
-                    if cursorDate! < earliestDate! {
-                        break
-                    }
-                }
-                cursor = feed!.cursor
-            }
+    public func run() throws {
+        let parameters = BlueskyParameters()
+        if parameters.valid == false {
+            return
         }
         
+        let update : Bool = UserDefaults.standard.bool(forKey: labelForceUpdateReplies)
+        try updateReplies(bskyToken:parameters.bskyToken!,
+                          limit:parameters.limit,
+                          update:update,
+                          earliestDate:parameters.firstDate)
     }
 }

@@ -10,10 +10,13 @@ import SwiftUI
 @main
 struct BluesentApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-
+    
     var body: some Scene {
-        MenuBarExtra("",systemImage: "message.badge.waveform.fill") {
-            Menu("Run") {
+        WindowGroup{
+            PostsPerDayView()
+        }
+        .commands{
+            CommandMenu("Run") {
                 Button("Feed Crawler") {
                     do {
                         try runFeedCrawler()
@@ -30,6 +33,8 @@ struct BluesentApp: App {
                     }
                 }
                 .keyboardShortcut("2", modifiers: [.command, .shift, .option])
+            }
+            CommandMenu("Analytics") {
                 Button("Sentiment Analysis"){
                     do {
                         try runSentimentAnalysis()
@@ -39,9 +44,6 @@ struct BluesentApp: App {
                     
                 }
                 .keyboardShortcut("3", modifiers: [.command, .shift, .option])
-                
-            }
-            Menu("Analytics") {
                 Button("Posts per Day") {
                     do {
                         try Statistics().postsPerDay()
@@ -51,45 +53,37 @@ struct BluesentApp: App {
                     }
                 }
             }
-            Divider()
-            Button("Setting") {
-                appDelegate.openSettingsWindow()
-            }.keyboardShortcut(",")
-            Divider()
-            Button("Quit") {
-                NSApplication.shared.terminate(nil)
-            }.keyboardShortcut("q")
         }
-        
-    }
-    
-    func runFeedCrawler() throws {
-        Task {
-            let blueskyCrawler = BlueskyCrawler()
-            try await blueskyCrawler.runFeedsScraper()
+        Settings{
+            SettingsView()
         }
     }
-    
-    func runRepliesCrawler() throws {
-        Task {
-            let blueskyCrawler = BlueskyCrawler()
-            try await blueskyCrawler.runRepliesCrawler()
-        }
-    }
-    
-    func runSentimentAnalysis() throws {
-        Task {
-            try await SentimentAnalysis().runSentimentAnalysis()
-        }
-    }
-    
 }
+
+func runFeedCrawler() throws {
+    Task {
+        try BlueskyFeedHandler().run()
+    }
+}
+
+func runRepliesCrawler() throws {
+    Task {
+        try BlueskyRepliesHandler().run()
+    }
+}
+
+func runSentimentAnalysis() throws {
+    Task {
+        try await SentimentAnalysis().runSentimentAnalysis()
+    }
+}
+
 
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     var settingsWindow: NSWindow?
     var postsPerDayWindow: NSWindow?
-
+    
     func openSettingsWindow() {
         if settingsWindow == nil {
             // Create a new SwiftUI-based window for settings
@@ -106,7 +100,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         // Center the window on the screen
         settingsWindow?.center()
-         
+        
         // Show the settings window
         settingsWindow?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
@@ -128,9 +122,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         // Center the window on the screen
         postsPerDayWindow?.center()
-         
+        
         // Show the settings window
         postsPerDayWindow?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
-    }    
+    }
 }

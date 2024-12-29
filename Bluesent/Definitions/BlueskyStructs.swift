@@ -8,7 +8,7 @@
 import Foundation
 
 struct FeedResponse: Codable {
-    let cursor: String
+    let cursor: String?
     let feed: [FeedItem]
 }
 
@@ -66,13 +66,13 @@ struct External: Codable {
 
 struct Author: Codable {
     let handle: String
-    let displayName: String
+    let displayName: String?
     let did: String
     let createdAt: String
 }
 
 struct AccountFeed: Codable {
-    let cursor: String
+    let cursor: String?
     let posts: [ReplyTreeMDB]
 }
 

@@ -205,7 +205,7 @@
 			mainGroup = 27EDAEAF2D1A146C008CC592;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				2728C45C2D202F0A006BC0DF /* XCLocalSwiftPackageReference "../../../Downloads/mongo-swift-driver-main" */,
+				2756E6932D21539700BFE9C9 /* XCLocalSwiftPackageReference "../../swift-modules/mongo-swift-driver-main" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 27EDAEB92D1A146C008CC592 /* Products */;
@@ -413,7 +413,7 @@
 				DEVELOPMENT_TEAM = CKF3U884G2;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_LSUIElement = YES;
+				INFOPLIST_KEY_LSUIElement = NO;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -442,7 +442,7 @@
 				DEVELOPMENT_TEAM = CKF3U884G2;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_LSUIElement = YES;
+				INFOPLIST_KEY_LSUIElement = NO;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -563,9 +563,9 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		2728C45C2D202F0A006BC0DF /* XCLocalSwiftPackageReference "../../../Downloads/mongo-swift-driver-main" */ = {
+		2756E6932D21539700BFE9C9 /* XCLocalSwiftPackageReference "../../swift-modules/mongo-swift-driver-main" */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = "../../../Downloads/mongo-swift-driver-main";
+			relativePath = "../../swift-modules/mongo-swift-driver-main";
 		};
 /* End XCLocalSwiftPackageReference section */
 

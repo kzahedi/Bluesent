@@ -10,7 +10,7 @@ struct ReplyTreeMDB: Codable {
     var _id: String  // Using post URI as unique identifier
     var author: String
     var did: String
-    var createdAt: String
+    var createdAt: Date?
     var likeCount: Int
     var quoteCount: Int
     var replyCount: Int?
@@ -26,9 +26,9 @@ struct ReplyTreeMDB: Codable {
 func postToDoc(_ post: Post) -> ReplyTreeMDB {
     return ReplyTreeMDB(
         _id: post.uri,
-        author: post.author.displayName,
+        author: post.author.displayName ?? "NA",
         did: post.author.did,
-        createdAt: post.record.createdAt,
+        createdAt: convertToDate(from:post.record.createdAt) ?? nil,
         likeCount: post.likeCount,
         quoteCount: post.quoteCount,
         replyCount: post.replyCount,

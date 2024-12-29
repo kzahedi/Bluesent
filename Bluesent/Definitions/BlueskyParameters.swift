@@ -1,16 +1,11 @@
 //
-//  BlueskyCrawler.swift
+//  BlueskyParameters.swift
 //  Bluesent
 //
-//  Created by Keyan Ghazi-Zahedi on 24.12.24.
+//  Created by Keyan Ghazi-Zahedi on 29.12.24.
 //
 
 import Foundation
-
-struct ErrorResponse: Codable {
-    let error: String
-    let message: String?
-}
 
 struct HandleResponse: Codable {
     let did: String
@@ -24,56 +19,28 @@ struct TokenResponse: Codable {
     }
 }
 
-enum BlueskyError: Error {
-    case feedFetchFailed(reason: String, statusCode: Int?)
-    case decodingError(String, underlyingError: Error)
-    case networkError(String, underlyingError: Error)
-    case invalidResponse(String)
-    case unauthorized(String)
-    
-    var localizedDescription: String {
-        switch self {
-        case .feedFetchFailed(let reason, let code):
-            if let statusCode = code {
-                return "Feed fetch failed: \(reason) (Status: \(statusCode))"
-            }
-            return "Feed fetch failed: \(reason)"
-        case .decodingError(let context, let error):
-            return "Decoding error in \(context): \(error.localizedDescription)"
-        case .networkError(let context, let error):
-            return "Network error in \(context): \(error.localizedDescription)"
-        case .invalidResponse(let details):
-            return "Invalid response received: \(details)"
-        case .unauthorized(let message):
-            return "Authorization failed: \(message)"
-        }
-    }
-}
-
 struct BlueskyParameters {
     public var sourceAccount: String = ""
     public var appPassword: String = ""
-    public var targetAccounts: [String] = []
-    public var targetDIDs: [String] = []
-    public var limit = UserDefaults.standard.integer(forKey: "limit")
-    public var firstDate = UserDefaults.standard.object(forKey: "scrapingDate") as! Date
+    public var targetAccounts: [(String,String)] = []
     public var valid : Bool = false
     public var sourceDID : String? = nil
     public var bskyToken : String? = nil
-    
-    
-    public mutating func update() {
+    public var limit = 0
+    public var firstDate = Date()
+     
+    init() {
         var errorMsg : String = ""
         let sa = Credentials.shared.getUsername()
         let ap = Credentials.shared.getPassword()
         let ta = UserDefaults.standard.stringArray(forKey: "targetAccounts")
         
-        self.limit = UserDefaults.standard.integer(forKey: "limit")
-        self.firstDate = UserDefaults.standard.object(forKey: "scrapingDate") as! Date
+        self.limit = UserDefaults.standard.integer(forKey: labelScrapingBatchSize)
+        self.firstDate = UserDefaults.standard.object(forKey: labelScrapingDate) as! Date
         
         if ta != nil {
-            self.targetAccounts = ta!
-            print("Taget accounts: \(self.targetAccounts)")
+            self.targetAccounts = ta!.map{($0, resolveDID(handle: $0) ?? "")}
+            print("Target accounts: \(ta!)")
         } else {
             print("No target accounts given")
         }
@@ -82,12 +49,7 @@ struct BlueskyParameters {
             errorMsg += "Source account is missing.\n"
         } else {
             self.sourceAccount = sa!
-        }
-        
-        if ta == nil || ta!.isEmpty {
-            errorMsg += "Target accounts are missing.\n"
-        } else {
-            self.targetAccounts = ta!
+            self.sourceDID = resolveDID(handle: sa!)
         }
         
         if ap == nil || ap!.isEmpty {
@@ -104,31 +66,14 @@ struct BlueskyParameters {
             print("Error: \(errorMsg)")
             return
         }
-        self.valid = true
-    }
-}
-
-
-class BlueskyCrawler {
-    
-    private var token: String? = nil
-    private var parameters = BlueskyParameters()
-    
-    public init(){
-        updateParameters()
-    }
-    
-    public func updateParameters() {
-        self.parameters.update()
-        self.parameters.sourceDID = resolveDID(handle: parameters.sourceAccount)
-        self.parameters.bskyToken = getToken(sourceDID: parameters.sourceDID!)
-        self.parameters.targetDIDs = parameters.targetAccounts.map{resolveDID(handle: $0)!}
         
-        if self.parameters.sourceDID!.isEmpty || self.parameters.bskyToken!.isEmpty ||
-            self.parameters.sourceDID == nil  || self.parameters.bskyToken == nil {
-            print("Error: Missing source did or token")
-            self.parameters.valid = false
+        self.bskyToken = getToken()
+        if bskyToken == nil {
+            print("Error receiving token")
+            return
         }
+        
+        self.valid = true
     }
     
     public func resolveDID(handle: String) -> String? {
@@ -158,11 +103,6 @@ class BlueskyCrawler {
                 group.leave()
             }
             
-            // Log raw response for debugging
-            //            if let jsonString = String(data: data!, encoding: .utf8) {
-            //                print("Raw Handle Response: \(jsonString)")
-            //            }
-            
             do {
                 // Check for error response
                 if let errorResponse = try? JSONDecoder().decode(ErrorResponse.self, from: data!) {
@@ -187,11 +127,14 @@ class BlueskyCrawler {
         return returnValue
     }
     
-    public func getToken(sourceDID: String) -> String? {
+    public func getToken() -> String? {
+        if self.sourceDID == nil || self.sourceDID!.isEmpty {
+            return nil
+        }
         let apiKeyURL = "https://bsky.social/xrpc/com.atproto.server.createSession"
         let group = DispatchGroup()
         let tokenPayload: [String: Any] = [
-            "identifier": sourceDID,
+            "identifier": self.sourceDID!,
             "password": Credentials.shared.getPassword() ?? ""
         ]
         
@@ -204,8 +147,6 @@ class BlueskyCrawler {
         tokenRequest.httpMethod = "POST"
         tokenRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
         tokenRequest.httpBody = tokenData
-        
-        //        print("Requesting token with DID: \(sourceDID) and Password")
         
         var returnValue : String? = nil
         
@@ -243,29 +184,5 @@ class BlueskyCrawler {
         tokenTask.resume()
         group.wait()
         return returnValue
-    }
-    
-    public func runFeedsScraper() async throws {
-        updateParameters()
-        
-        let update : Bool = UserDefaults.standard.bool(forKey: "update feed")
-        
-        print("Starting feeds scraper")
-        try BlueskyFeedHandler().updateFeeds(targetDIDs:parameters.targetDIDs,
-                                             bskyToken:parameters.bskyToken!,
-                                             limit:parameters.limit,
-                                             update:update,
-                                             earliestDate:parameters.firstDate)
-        print("Done feeds scraper")
-    }
-    
-    public func runRepliesCrawler() async throws {
-        updateParameters()
-        
-        let update : Bool = UserDefaults.standard.bool(forKey: "update replies")
-        try BlueskyRepliesHandler().updateReplies(bskyToken:parameters.bskyToken!,
-                                           limit:parameters.limit,
-                                           update:update,
-                                           earliestDate:parameters.firstDate)
     }
 }

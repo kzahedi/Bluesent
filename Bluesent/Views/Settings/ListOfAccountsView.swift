@@ -27,8 +27,14 @@ public struct ListOfAccountsView : View {
                 TextField("Add Account", text: $newTargetAccount)
                     .frame(width: 200)
                 Button("Add") {
-                    listOfAccounts.append(newTargetAccount)
+                    let target = newTargetAccount.replacingOccurrences(
+                        of: "\\r?\\n",
+                        with: "",
+                        options: .regularExpression
+                    )
+                    listOfAccounts.append(target)
                     newTargetAccount = ""
+                    saveEntries()
                 }
                 Spacer()
             }
@@ -51,6 +57,9 @@ public struct ListOfAccountsView : View {
         listOfAccounts = UserDefaults.standard.array(forKey: "targetAccounts") as? [String] ?? []
     }
 
+    private func saveEntries() {
+        UserDefaults.standard.set(listOfAccounts, forKey: "targetAccounts")
+    }
 
 }
 

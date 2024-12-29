@@ -11,6 +11,8 @@ import Charts
 
 struct PostsPerDayView: View {
     @State var data : [DailyStatsMDB]? = nil
+    @State var firstDay : Date? = nil
+    @State var maxPostsPerDay : Int = 0
     
     var body: some View {
         ScrollView{
@@ -42,6 +44,23 @@ struct PostsPerDayView: View {
         print("Reading data")
         let mongoDB = try MongoDBHandler()
         data = try mongoDB.getPostsPerDay()
+        for d in data! {
+            let day = d.posts_per_day.last!.day
+            if firstDay == nil {
+                firstDay = day
+            }
+            
+            if day < firstDay! {
+                firstDay = day
+            }
+            
+            for post in d.posts_per_day {
+                if post.count > maxPostsPerDay {
+                    maxPostsPerDay = post.count
+                }
+            }
+        }
+                    
         print("Done reading data: (\(data?.count ?? 0))")
     }
     
@@ -53,8 +72,10 @@ struct PostsPerDayView: View {
                             y: .value("Count", dataPoint.count))
                 }
             }
+            .chartXScale(domain: firstDay!...Date())
+//            .chartYScale(domain: 0...maxPostsPerDay)
         }
-        .frame(maxWidth: 1000, maxHeight: 200)
+        .frame(maxHeight: 200)
     }
     
     private func titleView(_ d: DailyStatsMDB) -> some View {
@@ -65,7 +86,7 @@ struct PostsPerDayView: View {
                 .foregroundColor(Color.white)
                 .multilineTextAlignment(.leading)
         }
-        .frame(maxWidth: 1000, maxHeight: 200, alignment: .leading)
+        .frame(maxHeight: 200, alignment: .leading)
     }
     
 }

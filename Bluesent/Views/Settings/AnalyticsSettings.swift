@@ -20,10 +20,10 @@ struct AnalyticsSettings: View {
                         Text("Force update sentiments")
                     }
                     .onChange(of: updateSentiment) {
-                        UserDefaults.standard.set(updateSentiment, forKey: "update sentiments")
+                        UserDefaults.standard.set(updateSentiment, forKey: labelForceUpdateSentiments)
                     }
                     .onAppear() {
-                        updateSentiment = UserDefaults.standard.bool(forKey: "update sentiments")
+                        updateSentiment = UserDefaults.standard.bool(forKey: labelForceUpdateSentiments)
                     }
                 }
             }
@@ -35,7 +35,7 @@ struct AnalyticsSettings: View {
     }
     
     private func initialiseValues() {
-        updateSentiment = UserDefaults.standard.bool(forKey: "update sentiments")
+        updateSentiment = UserDefaults.standard.bool(forKey: labelForceUpdateSentiments)
     }
 }
 

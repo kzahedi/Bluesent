@@ -14,7 +14,7 @@ struct SentimentAnalysis {
     
     public func runSentimentAnalysis(all:Bool = false) async throws {
         print("Running sentiment analysis")
-        let update : Bool = UserDefaults.standard.bool(forKey: "update sentiments")
+        let update : Bool = UserDefaults.standard.bool(forKey: labelForceUpdateSentiments)
         var mongoDB : MongoDBHandler? = nil
         
         do {
@@ -38,7 +38,7 @@ struct SentimentAnalysis {
             } else {
                 modifyReplyTree(&doc, modify:calculateSentiment)
             }
-            try mongoDB!.update(document: doc)
+            let _ = try mongoDB!.updateFeedDocument(document: doc)
         }
         print("Done with sentiment analysis")
     }
