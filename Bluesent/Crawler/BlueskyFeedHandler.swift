@@ -87,10 +87,13 @@ struct BlueskyFeedHandler {
         return returnValue
     }
     
-    private func updateFeeds(targetAccounts:[(String, String)], bskyToken:String, limit:Int, update:Bool = false, earliestDate:Date? = nil) throws {
+    private func updateFeeds(targetAccounts:[(String, String)], bskyToken:String, limit:Int, update:Bool = false, earliestDate:Date? = nil, progress:(Double) -> ()) throws {
         
         var mongoDB : MongoDBHandler? = nil
         mongoDB = try MongoDBHandler()
+        
+        var progressIncrement = 1.0 / (Double(targetAccounts.count) - 1)
+        var currentProgress = 0.0
         
         let shuffleAccounts = targetAccounts.shuffled()
         
@@ -131,10 +134,12 @@ struct BlueskyFeedHandler {
                 }
                 cursor = feed!.cursor!
             }
+            currentProgress += progressIncrement
+            progress(currentProgress)
         }
     }
     
-    public func runFor(account:String? = nil) throws {
+    public func run(account:String? = nil, progress:(Double) -> ()) throws {
         let parameters = BlueskyParameters()
         if parameters.valid == false {
             print("Invalid parameters")
@@ -159,7 +164,8 @@ struct BlueskyFeedHandler {
                         bskyToken:parameters.bskyToken!,
                         limit:parameters.limit,
                         update:update,
-                        earliestDate:parameters.firstDate)
+                        earliestDate:parameters.firstDate,
+                        progress:progress)
         print("Done feeds scraper")
     }
 }

@@ -12,7 +12,7 @@ import MongoSwiftSync
 struct SentimentAnalysis {
     private let tagger = NLTagger(tagSchemes: [.sentimentScore])
     
-    public func runSentimentAnalysis(all:Bool = false) async throws {
+    public func run(all:Bool = false, progress: (Double) -> ()) async throws {
         print("Running sentiment analysis")
         let update : Bool = UserDefaults.standard.bool(forKey: labelForceUpdateSentiments)
         var mongoDB : MongoDBHandler? = nil
@@ -24,14 +24,19 @@ struct SentimentAnalysis {
             return
         }
         
-        var cursor : MongoCursor<ReplyTreeMDB>? = nil;
+        var query : BSONDocument = [:]
         if all || update {
-            cursor  = try mongoDB!.posts.find([:])
         } else {
-            cursor  = try mongoDB!.posts.find(["sentiment": ["$exists": false]])
+            query = ["sentiment": ["$exists": false]]
         }
         
-        for document in cursor! {
+        let cursor : MongoCursor<ReplyTreeMDB> = try mongoDB!.posts.find(query)
+        let count : Double = Double(try mongoDB!.posts.countDocuments(query))
+        var n : Double = 0.0
+
+        for document in cursor {
+            n = n + 1
+            progress( n / count)
             var doc : ReplyTreeMDB = try document.get()
             if doc.text.count == 0 {
                 doc.sentiment = 0.0

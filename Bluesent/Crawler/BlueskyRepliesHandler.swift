@@ -9,33 +9,65 @@ import MongoSwiftSync
 
 struct BlueskyRepliesHandler {
     
-    private func updateReplies(bskyToken:String, limit:Int, update:Bool = false, earliestDate:Date? = nil) throws {
+    private func updateReplies(bskyToken:String,
+                               limit:Int,
+                               update:Bool = false,
+                               earliestDate:Date? = nil,
+                               progress:(Double)->()) throws {
         let threadRequestURL = "https://api.bsky.social/xrpc/app.bsky.feed.getPostThread?depth=1000&uri="
         var mongoDB : MongoDBHandler? = nil
         mongoDB = try MongoDBHandler()
-        
+
         let update = UserDefaults.standard.bool(forKey: labelForceUpdateSentiments)
-        
+
         var cursor : MongoCursor<ReplyTreeMDB>? = nil;
-        if update {
-            cursor  = try mongoDB!.posts.find([:])
-        } else {
-            cursor  = try mongoDB!.posts.find([
-                "replyCount" : ["$gt": 0],
-                "$or" : [
-                    "replies": ["$exists": false],
-                    "replies.0": ["$exists": false]
-                ]])
+        var count = 0
+        do {
+            if update {
+                cursor  = try mongoDB!.posts.find([:])
+                count = try mongoDB!.posts.countDocuments([:])
+            } else {
+                let query: BSONDocument = ["replies.0" : ["$exists":false], "replyCount": ["$gt":0]]
+                let options = FindOptions(sort: ["replyCount": -1])
+                cursor  = try mongoDB!.posts.find(query, options: options)
+                count = try mongoDB!.posts.countDocuments(query)
+            }
+        } catch {
+            print(error)
+            return
         }
+        
+        print("Running \(count) posts")
+        
+        var step : Double = 0.0
         
         for document in cursor! {
-            let uri = try document.get()._id
+            step = step + 1.0
+            progress(step / Double(count))
+            print("Progress \(step) / \(count) : \(step / Double(count-1))")
+            let doc = try document.get()
+            // wait at least two days to get the reply tree
+            if doc.createdAt != nil {
+                if doc.createdAt!.isXDaysAgo(x: 2) == false {
+                    continue
+                }
+            }
+            if doc.replies != nil && doc.replies!.count > 0 { continue }
+            let uri = doc._id
             let url = threadRequestURL + uri
-            let document = try getThread(url: url, bskyToken: bskyToken)
-            if document != nil {
-                let _ = try mongoDB!.updateFeedDocument(document: document!)
+            let thread = try getThread(url: url, bskyToken: bskyToken)
+            if thread != nil {
+                let _ = try mongoDB!.updateFeedDocument(document: thread!)
             }
         }
+    }
+    
+    private func countReplies(document: ReplyTreeMDB) -> Int {
+        var n = document.replies?.count ?? 0
+        for reply in document.replies ?? [] {
+           n += countReplies(document: reply)
+        }
+        return n
     }
     
     private func getThread(url:String, bskyToken:String) throws -> ReplyTreeMDB? {
@@ -192,16 +224,20 @@ struct BlueskyRepliesHandler {
         return returnValue
     }
     
-    public func run() throws {
+    public func run(progress: (Double)->()) throws {
         let parameters = BlueskyParameters()
         if parameters.valid == false {
+            print("Parameters invalid")
             return
         }
+        
+        print("hier")
         
         let update : Bool = UserDefaults.standard.bool(forKey: labelForceUpdateReplies)
         try updateReplies(bskyToken:parameters.bskyToken!,
                           limit:parameters.limit,
                           update:update,
-                          earliestDate:parameters.firstDate)
+                          earliestDate:parameters.firstDate,
+                          progress:progress)
     }
 }

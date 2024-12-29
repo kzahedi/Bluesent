@@ -32,36 +32,6 @@ struct SettingsView: View {
                     Label("Analytics Settings", systemImage: "hand.raised")
                 }
             
-            PrivacySettingsView()
-                .tabItem {
-                    Label("MongoDB Settings", systemImage: "hand.raised")
-                }
-        }
-        .frame(width: 800, height: 500)
-    }
-}
-
-
-
-
-struct PrivacySettingsView: View {
-    struct Ocean: Identifiable {
-        let name: String
-        let id = UUID()
-    }
-    
-    private var oceans = [
-        Ocean(name: "Pacific"),
-        Ocean(name: "Atlantic"),
-        Ocean(name: "Indian"),
-        Ocean(name: "Southern"),
-        Ocean(name: "Arctic")
-    ]
-    
-    
-    var body: some View {
-        List(oceans) {
-            Text($0.name)
         }
     }
 }

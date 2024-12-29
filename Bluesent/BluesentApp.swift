@@ -8,75 +8,76 @@
 import SwiftUI
 
 @main
+
 struct BluesentApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     
     var body: some Scene {
         WindowGroup{
-            PostsPerDayView()
-        }
-        .commands{
-            CommandMenu("Run") {
-                Button("Feed Crawler") {
-                    do {
-                        try runFeedCrawler()
-                    } catch {
-                        print(error)
-                    }
-                }
-                .keyboardShortcut("1", modifiers: [.command, .shift, .option])
-                Button("Replies Crawer") {
-                    do {
-                        try runRepliesCrawler()
-                    } catch {
-                        print(error)
-                    }
-                }
-                .keyboardShortcut("2", modifiers: [.command, .shift, .option])
-            }
-            CommandMenu("Analytics") {
-                Button("Sentiment Analysis"){
-                    do {
-                        try runSentimentAnalysis()
-                    } catch {
-                        print(error)
-                    }
-                    
-                }
-                .keyboardShortcut("3", modifiers: [.command, .shift, .option])
-                Button("Posts per Day") {
-                    do {
-                        try Statistics().postsPerDay()
-                        appDelegate.openPostsPerDay()
-                    } catch {
-                        print(error)
-                    }
-                }
-            }
-        }
-        Settings{
-            SettingsView()
+            MainNavigationView()
         }
     }
 }
 
-func runFeedCrawler() throws {
-    Task {
-        try BlueskyFeedHandler().run()
-    }
-}
 
-func runRepliesCrawler() throws {
-    Task {
-        try BlueskyRepliesHandler().run()
-    }
-}
 
-func runSentimentAnalysis() throws {
-    Task {
-        try await SentimentAnalysis().runSentimentAnalysis()
-    }
-}
+
+
+
+
+//struct BluesentApp: App {
+//    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+//    
+//    var body: some Scene {
+//        WindowGroup{
+//            PostsPerDayView()
+//        }
+//        .commands{
+//            CommandMenu("Run") {
+//                Button("Feed Crawler") {
+//                    do {
+//                        try runFeedCrawler()
+//                    } catch {
+//                        print(error)
+//                    }
+//                }
+//                .keyboardShortcut("1", modifiers: [.command, .shift, .option])
+//                Button("Replies Crawer") {
+//                    do {
+//                        try runRepliesCrawler()
+//                    } catch {
+//                        print(error)
+//                    }
+//                }
+//                .keyboardShortcut("2", modifiers: [.command, .shift, .option])
+//            }
+//            CommandMenu("Analytics") {
+//                Button("Sentiment Analysis"){
+//                    do {
+//                        try runSentimentAnalysis()
+//                    } catch {
+//                        print(error)
+//                    }
+//                    
+//                }
+//                .keyboardShortcut("3", modifiers: [.command, .shift, .option])
+//                Button("Posts per Day") {
+//                    do {
+//                        try Statistics().postsPerDay()
+//                        appDelegate.openPostsPerDay()
+//                    } catch {
+//                        print(error)
+//                    }
+//                }
+//            }
+//        }
+//
+//        Settings{
+//            SettingsView()
+//        }
+//    }
+//}
+
 
 
 
@@ -128,3 +129,4 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.activate(ignoringOtherApps: true)
     }
 }
+
