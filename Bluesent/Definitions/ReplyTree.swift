@@ -63,3 +63,31 @@ func printTree(_ node: ReplyTree, level: Int = 0) {
     print("\(indent)\(node.text) (Replies: \(node.replies?.count ?? 0)) (Depth \(node.countedRepliesDepth ?? 0))")
     node.replies?.forEach { printTree($0, level: level + 1) }
 }
+
+// Update the decoding logic to match the JSON structure
+func decodeReplyTree(from jsonData: Data) throws -> ReplyTree {
+    let decoder = JSONDecoder()
+    decoder.dateDecodingStrategy = .iso8601 // Adjust if your date format is different
+    let replyTree = try decoder.decode(ReplyTree.self, from: jsonData)
+    return replyTree
+}
+
+func postToReplyTree(_ post: Post) -> ReplyTree {
+    return ReplyTree(
+        _id: post.uri!,
+        author: post.author!.displayName ?? "NA",
+        did: post.author!.did!,
+        createdAt: convertToDate(from:post.record!.createdAt!) ?? nil,
+        likeCount: post.likeCount!,
+        quoteCount: post.quoteCount!,
+        replyCount: post.replyCount!,
+        repostCount: post.repostCount!,
+        text: post.record!.text!,
+        title: post.record!.embed?.external?.title!,
+        handle: post.author!.handle!,
+        fetchedAt: Date(),
+        sentiment: nil,
+        replies:nil,
+        countedReplies:nil,
+        countedRepliesDepth:nil)
+}

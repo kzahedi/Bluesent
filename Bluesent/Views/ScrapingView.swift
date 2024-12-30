@@ -21,6 +21,8 @@ public struct ScrapingView: View {
     @State private var countRepliesProgress: Double = 0
     @State private var isCountingReplies: Bool = false
     
+    @State var bskyRepliesHandler : BlueskyRepliesHandler? = nil
+
     public var body: some View {
         VStack(alignment: .leading) {
             Section (header: Text("Over all accounts")){
@@ -87,7 +89,8 @@ public struct ScrapingView: View {
         DispatchQueue.global(qos: .userInitiated).async {
             do {
                 // Run the blocking task in a background thread
-                try BlueskyFeedHandler().run(progress: updateFeedProgress)
+//                try BlueskyFeedHandler().run(progress: updateFeedProgress)
+                try BlueskyFeedHandler().runFor()
             } catch {
                 print("Error: \(error)")
             }
@@ -101,8 +104,11 @@ public struct ScrapingView: View {
         isReplyTreeScraping = true
         DispatchQueue.global(qos: .userInitiated).async {
             do {
+                if bskyRepliesHandler == nil {
+                    bskyRepliesHandler = BlueskyRepliesHandler()
+                }
                 // Run the blocking task in a background thread
-                try BlueskyRepliesHandler().run(progress: updateReplyTreeProgress)
+                try bskyRepliesHandler!.run(progress: updateReplyTreeProgress)
             } catch {
                 print("Error: \(error)")
             }

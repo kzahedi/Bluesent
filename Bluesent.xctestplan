@@ -1,0 +1,38 @@
+{
+  "configurations" : [
+    {
+      "id" : "40C3C220-5516-4E3B-9CA3-1DE64A62760E",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:Bluesent.xcodeproj",
+      "identifier" : "27EDAEB72D1A146C008CC592",
+      "name" : "Bluesent"
+    }
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:Bluesent.xcodeproj",
+        "identifier" : "27EDAEC82D1A146F008CC592",
+        "name" : "BluesentTests"
+      }
+    },
+    {
+      "enabled" : false,
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:Bluesent.xcodeproj",
+        "identifier" : "27EDAED22D1A146F008CC592",
+        "name" : "BluesentUITests"
+      }
+    }
+  ],
+  "version" : 1
+}

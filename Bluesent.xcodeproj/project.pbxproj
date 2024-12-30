@@ -29,6 +29,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		2741C5122D2358020032BB71 /* Bluesent.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = Bluesent.xctestplan; sourceTree = "<group>"; };
 		27EDAEB82D1A146C008CC592 /* Bluesent.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Bluesent.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		27EDAEC92D1A146F008CC592 /* BluesentTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BluesentTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		27EDAED32D1A146F008CC592 /* BluesentUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BluesentUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -82,6 +83,7 @@
 		27EDAEAF2D1A146C008CC592 = {
 			isa = PBXGroup;
 			children = (
+				2741C5122D2358020032BB71 /* Bluesent.xctestplan */,
 				27EDAEBA2D1A146C008CC592 /* Bluesent */,
 				27EDAECC2D1A146F008CC592 /* BluesentTests */,
 				27EDAED62D1A146F008CC592 /* BluesentUITests */,

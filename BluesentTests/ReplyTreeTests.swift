@@ -43,7 +43,6 @@ struct ReplyTreeTests {
         }
     }
     
-    
     @Test func testRecurrentFunction() async throws {
         // Write your test here and use APIs like `#expect(...)` to check expected conditions.
         var tree = createRandomReplyTreeNode()
@@ -98,7 +97,5 @@ struct ReplyTreeTests {
         applyRecursively(node: &tree, transformation: checkBefore)
         applyRecursively(node: &tree, transformation: calculateRepliesDepth)
         applyRecursively(node: &tree, transformation: checkAfter)
-//        printTree(tree)
     }
- 
 }

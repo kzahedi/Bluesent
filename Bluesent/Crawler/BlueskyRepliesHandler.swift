@@ -8,70 +8,44 @@ import Foundation
 import MongoSwiftSync
 
 struct BlueskyRepliesHandler {
-    let threadRequestURL = "https://api.bsky.social/xrpc/app.bsky.feed.getPostThread?depth=1000&uri="
+    var bskyToken:String = ""
+    var mongoDB : MongoDBHandler? = nil
 
-    private func updateReplies(bskyToken:String,
-                               limit:Int,
-                               update:Bool = false,
-                               earliestDate:Date? = nil,
-                               progress:(Double)->()) throws {
-        var mongoDB : MongoDBHandler? = nil
-        mongoDB = try MongoDBHandler()
+    private func getCursor(update:Bool = false, earliestDate:Date? = nil) throws -> (MongoCursor<ReplyTree>?, Int) {
 
         let update = UserDefaults.standard.bool(forKey: labelForceUpdateSentiments)
 
         var cursor : MongoCursor<ReplyTree>? = nil;
-        var count = 0
+        var count : Int = 0
         do {
             if update {
                 cursor  = try mongoDB!.posts.find([:])
                 count = try mongoDB!.posts.countDocuments([:])
             } else {
-                let query: BSONDocument = ["replies.0" : ["$exists":false], "replyCount": ["$gt":0]]
+                var query: BSONDocument = ["replies.0" : ["$exists":false], "replyCount": ["$gt":0, "$lt" : 5]]
+//                var query: BSONDocument = ["replyCount": ["$gt":0, "$lt" : 5]]
                 let options = FindOptions(sort: ["replyCount": -1])
                 cursor  = try mongoDB!.posts.find(query, options: options)
                 count = try mongoDB!.posts.countDocuments(query)
             }
         } catch {
             print(error)
-            return
+            return (nil, 0)
         }
         
         print("Running \(count) posts")
         
-        var step : Double = 0.0
-        
-        for document in cursor! {
-            step = step + 1.0
-            progress(step / Double(count))
-            print("Progress \(step) / \(count) : \(step / Double(count-1))")
-            let doc = try document.get()
-            // wait at least two days to get the reply tree
-            if doc.createdAt != nil {
-                if doc.createdAt!.isXDaysAgo(x: 2) == false {
-                    continue
-                }
-            }
-            if (doc.replies != nil) &&
-                (doc.replies!.count != 0) &&
-                (update == false) { continue }
-            let uri = doc._id
-            let url = threadRequestURL + uri
-            let thread = try getThread(url: url, bskyToken: bskyToken)
-            if thread != nil {
-                let _ = try mongoDB!.updateFeedDocument(document: thread!)
-            }
-        }
+        return (cursor, count)
     }
     
    
-    private func getThread(url:String, bskyToken:String) throws -> ReplyTree? {
-        var feedRequest = URLRequest(url: URL(string: url)!)
-        var returnValue : ReplyTree? = nil
+    private func getThread(url:URL) throws -> ReplyTree? {
+        var feedRequest = URLRequest(url: url)
+        var tree : ReplyTree? = nil
         let group = DispatchGroup()
         
         feedRequest.httpMethod = "GET"
-        feedRequest.setValue("Bearer \(bskyToken)", forHTTPHeaderField: "Authorization")
+        feedRequest.setValue("Bearer \(self.bskyToken)", forHTTPHeaderField: "Authorization")
         
         group.enter()
         let feedTask = URLSession.shared.dataTask(with: feedRequest) { data, response, error in
@@ -106,141 +80,18 @@ struct BlueskyRepliesHandler {
                 
                 //                prettyPrintJSON(data: data!)
                 
-                let thread = try JSONDecoder().decode(ThreadResponse.self, from: data!)
-                
-                returnValue = extractDocumentFrom(thread: thread.thread)
-                group.leave()
-                
-            } catch let decodingError as DecodingError {
-                print("Decoding error: \(decodingError)")
-                group.leave()
-            } catch let blueskyError as BlueskyError {
-                print("Bluesky error: \(blueskyError.localizedDescription)")
-                group.leave()
-            } catch {
-                print("Unexpected error: \(error)")
-                group.leave()
-            }
-        }
-        feedTask.resume()
-        group.wait()
-        
-        if returnValue != nil {
-            var foundNewSubtree = true
-            while foundNewSubtree {
-                foundNewSubtree = try recursiveGetThread(doc: &returnValue!, bskyToken: bskyToken)
-            }
-        }
-        
-        return returnValue
-    }
-    
-    public func recursiveGetThread(doc:inout ReplyTree, bskyToken:String) throws -> Bool {
-        if doc.replies == nil || doc.replies!.count == 0 {
-            return false
-        }
-        
-        var foundNewSubTree : Bool = false
-        
-        var new_replies : [ReplyTree] = []
-        for reply in doc.replies! {
-            if reply.replies == nil || reply.replies!.count == 0 { // check for replies
-                let uri = doc._id
-                let url = threadRequestURL + uri
-                var new_doc = try getThread(url: url, bskyToken: bskyToken)
-                if new_doc != nil {
-                    let b = try recursiveGetThread(doc: &new_doc!, bskyToken: bskyToken)
-                    foundNewSubTree = foundNewSubTree || b
-                    new_replies.append(new_doc!)
-                }
-            }
-        }
-        if new_replies.count > 0 {
-            doc.replies = new_replies
-        } else {
-            doc.replies = nil
-        }
-        
-        return (new_replies.count > 0 && foundNewSubTree)
-    }
-    
-    public func extractDocumentFrom(thread:Thread) -> ReplyTree {
-        let post = thread.post
-        //        print("Working on \(post.uri)")
-        let replies = thread.replies ?? []
-        var doc = postToDoc(post)
-        var r : [ReplyTree] = []
-        for reply in replies {
-            let new_doc : ReplyTree = extractDocumentFrom(thread: reply)
-            r.append(new_doc)
-        }
-        doc.replies = r
-        return doc
-    }
-    
-    public func fetchFeed(for targetDID: String, bskyToken: String, limit: Int, cursor:String) -> AccountFeed? {
-        let feedRequestURL = "https://api.bsky.social/xrpc/app.bsky.feed.getAuthorFeed"
-        var url = ""
-        if cursor == "" {
-            url = feedRequestURL + "?actor=\(targetDID)&limit=\(limit)"
-        } else {
-            url = feedRequestURL + "?actor=\(targetDID)&limit=\(limit)&cursor=\(cursor)"
-        }
-        var feedRequest = URLRequest(url: URL(string: url)!)
-        let group = DispatchGroup()
-        
-        feedRequest.httpMethod = "GET"
-        feedRequest.setValue("Bearer \(bskyToken)", forHTTPHeaderField: "Authorization")
-        
-        var returnValue: AccountFeed? = nil
-        
-        group.enter()
-        let feedTask = URLSession.shared.dataTask(with: feedRequest) { data, response, error in
-            if error != nil {
-                print("Error fetching feed: \(error!.localizedDescription)")
-                group.leave()
-                
-            }
-            
-            let httpResponse = response as? HTTPURLResponse
-            if httpResponse == nil {
-                print("Invalid response type")
-                group.leave()
-            }
-            
-            if data == nil {
-                print("No data received")
-                group.leave()
-            }
-            
-            //            prettyPrintJSON(data: data!)
-            
-            do {
-                if httpResponse!.statusCode == 401 {
-                    throw BlueskyError.unauthorized("Invalid or expired token")
-                }
-                
-                if !(200...299).contains(httpResponse!.statusCode) {
-                    throw BlueskyError.feedFetchFailed(
-                        reason: "Server returned error response",
-                        statusCode: httpResponse!.statusCode
-                    )
-                }
-                
-                let feedResponse = try JSONDecoder().decode(FeedResponse.self, from: data!)
-                
-                let filteredPosts = feedResponse.feed
-                    .filter { postWrapper in
-                        postWrapper.post.author.did == targetDID  // Keep only posts from the target DID
+                let thread = try decodeThread(from: data!)
+                tree = postToReplyTree(thread.thread.post!)
+                if thread.thread.replies != nil && thread.thread.replies!.count > 0 {
+                    tree!.replies = nil
+                    let children = extractDocumentFrom(thread: thread.thread)
+                    if children.count > 0 {
+                        tree!.replies = children
                     }
-                    .map { postWrapper in postToDoc(postWrapper.post)}
-                
-                returnValue = AccountFeed(
-                    cursor: feedResponse.cursor,
-                    posts: filteredPosts
-                )
+                }
                 group.leave()
             } catch let decodingError as DecodingError {
+                prettyPrintJSON(data: data!)
                 print("Decoding error: \(decodingError)")
                 group.leave()
             } catch let blueskyError as BlueskyError {
@@ -253,23 +104,112 @@ struct BlueskyRepliesHandler {
         }
         feedTask.resume()
         group.wait()
-        return returnValue
+        
+        return tree
     }
     
-    public func run(progress: (Double)->()) throws {
+   
+    
+    public func extractDocumentFrom(thread:Thread) -> [ReplyTree] {
+        var r : [ReplyTree] = []
+        if thread.replies != nil && thread.replies!.count > 0 {
+            for reply in thread.replies! {
+                if reply.post != nil {
+                    var node = postToReplyTree(reply.post!)
+                    if reply.replies != nil && reply.replies!.count > 0 {
+                        let children = extractDocumentFrom(thread: reply)
+                        node.replies = children
+                    }
+                    r.append(node)
+                }
+            }
+        }
+        return r
+    }
+    
+    private func skip(doc:ReplyTree) -> Bool {
+        if doc.createdAt != nil && doc.createdAt!.isXDaysAgo(x: 2) == false {
+            // document must be at least 2 days old
+            return true
+        }
+        if (doc.replies != nil) && (doc.replies!.count != 0) {
+            // skip if we have already found replies
+            return true
+        }
+        return false
+    }
+    
+    public mutating func run(progress: (Double)->()) throws {
+        if mongoDB == nil {
+            mongoDB = try MongoDBHandler()
+        }
         let parameters = BlueskyParameters()
         if parameters.valid == false {
             print("Parameters invalid")
             return
         }
         
-        print("hier")
+        self.bskyToken = parameters.bskyToken!
         
         let update : Bool = UserDefaults.standard.bool(forKey: labelForceUpdateReplies)
-        try updateReplies(bskyToken:parameters.bskyToken!,
-                          limit:parameters.limit,
-                          update:update,
-                          earliestDate:parameters.firstDate,
-                          progress:progress)
+        let (cursor, count) = try getCursor(update:update, earliestDate: parameters.firstDate)
+        
+        if cursor == nil {
+            return
+        }
+        
+        var step : Double = 0.0
+        let dCount : Double = Double(count)
+        
+        for document in cursor! {
+            step = step + 1.0
+            progress(step / dCount)
+//            print("Progress \(step) / \(count) : \(step / Double(count-1))")
+            
+            var doc = try document.get()
+            if skip(doc: doc) { continue }
+            
+            print("Running for \(doc._id)")
+            
+            recursiveGetThread(doc: &doc)
+            
+            let check = try mongoDB!.updateFeedDocument(document: doc)
+            if check != true {
+                print("Error. Document must have been in collection but was not \(doc._id)")
+            }
+        }
+    }
+    
+    private func createRequestURL(uri:String) -> URL {
+        let url = "https://api.bsky.social/xrpc/app.bsky.feed.getPostThread?parentHeight=0&depth=1000&uri=\(uri)"
+        return URL(string: url)!
+    }
+    
+    public func recursiveGetThread(doc:inout ReplyTree) {
+        
+        print("Recursive \(doc._id)")
+        
+        if doc.replies == nil || doc.replies!.count == 0 {
+            // only get new subtrees for nodes hat have no children
+            let url = createRequestURL(uri:doc._id)
+            do {
+//                print("Getting subtree")
+                let subTree = try getThread(url: url)
+                if subTree != nil {
+                    doc.replies = subTree!.replies
+                } else {
+                    doc.replies = nil
+                }
+            } catch {
+                print(error)
+            }
+        }
+        
+        if doc.replies != nil {
+//            print("Iterating over \(doc.replies!.count) replies")
+            for index in doc.replies!.indices {
+                recursiveGetThread(doc: &doc.replies![index])
+            }
+        }
     }
 }
