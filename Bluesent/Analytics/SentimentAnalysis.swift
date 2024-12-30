@@ -12,7 +12,7 @@ import MongoSwiftSync
 struct SentimentAnalysis {
     private let tagger = NLTagger(tagSchemes: [.sentimentScore])
     
-    public func run(all:Bool = false, progress: (Double) -> ()) async throws {
+    public func run(all:Bool = false, progress: (Double) -> ()) throws {
         print("Running sentiment analysis")
         let update : Bool = UserDefaults.standard.bool(forKey: labelForceUpdateSentiments)
         var mongoDB : MongoDBHandler? = nil

@@ -13,15 +13,16 @@ struct MainNavigationView: View {
     var body: some View {
         NavigationView {
             List{
-                NavigationLink("Scraping"){
-                    ScrapingView()
+                NavigationLink(destination: ScrapingView()){
+                    Label("Scraping", systemImage: "arrow.2.circlepath")
                 }
-                NavigationLink("Analysis"){
-                    Text("Analysis")
+                .padding(.bottom)
+                NavigationLink(destination:Text("Analysis")){
+                    Label("Analysis", systemImage: "magnifyingglass")
                 }
-                NavigationLink("Config"){
-                    SettingsView()
-                        .padding()
+                .padding(.bottom)
+                NavigationLink(destination:SettingsView()){
+                    Label("Settings", systemImage: "gearshape")
                 }
             }
         }

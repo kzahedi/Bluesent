@@ -18,6 +18,9 @@ public struct ScrapingView: View {
     @State private var sentimentProgress: Double = 0
     @State private var isCalculatingSentiments: Bool = false
     
+    @State private var countRepliesProgress: Double = 0
+    @State private var isCountingReplies: Bool = false
+    
     public var body: some View {
         VStack(alignment: .leading) {
             Section (header: Text("Over all accounts")){
@@ -57,8 +60,20 @@ public struct ScrapingView: View {
                         .gridColumnAlignment(.trailing)
                         
                     }
-                }
+                    GridRow{
+                        Text("Count replies")
+                            .gridColumnAlignment(.leading)
+                        ProgressView(value: countRepliesProgress)
+                            .progressViewStyle(LinearProgressViewStyle())
+                        Button("Run") {
+                            runCountingReplies()
+                        }
+                        .disabled(isCountingReplies)
+                        .gridColumnAlignment(.trailing)
+                        
+                    }                }
             }
+            .padding()
             
             Section (header: Text("Account individual actions")){
                 Text("Per Account")
@@ -103,7 +118,7 @@ public struct ScrapingView: View {
             sentimentProgress = 0.0
             do {
                 // Run the blocking task in a background thread
-                try await SentimentAnalysis().run(progress: updateSentimentProgress)
+                try SentimentAnalysis().run(progress: updateSentimentProgress)
             } catch {
                 print("Error: \(error)")
             }
@@ -112,7 +127,21 @@ public struct ScrapingView: View {
         }
     }
     
-    
+    func runCountingReplies() {
+        Task {
+            isCountingReplies = true
+            countRepliesProgress = 0.0
+            do {
+                // Run the blocking task in a background thread
+                try CountReplies().run(progress: updateCountingRepliesProgress)
+            } catch {
+                print("Error: \(error)")
+            }
+            countRepliesProgress = 1.0
+            isCountingReplies  = false
+        }
+    }
+     
     // Updates progress on the main thread
     private func updateFeedProgress(_ progress: Double) {
         DispatchQueue.main.async {
@@ -130,6 +159,12 @@ public struct ScrapingView: View {
     private func updateSentimentProgress(_ progress: Double) {
         DispatchQueue.main.async {
             sentimentProgress = progress
+        }
+    }
+    
+    private func updateCountingRepliesProgress(_ progress: Double) {
+        DispatchQueue.main.async {
+            countRepliesProgress = progress
         }
     }
     

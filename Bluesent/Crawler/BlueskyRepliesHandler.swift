@@ -62,14 +62,7 @@ struct BlueskyRepliesHandler {
         }
     }
     
-    private func countReplies(document: ReplyTreeMDB) -> Int {
-        var n = document.replies?.count ?? 0
-        for reply in document.replies ?? [] {
-           n += countReplies(document: reply)
-        }
-        return n
-    }
-    
+   
     private func getThread(url:String, bskyToken:String) throws -> ReplyTreeMDB? {
         var feedRequest = URLRequest(url: URL(string: url)!)
         var returnValue : ReplyTreeMDB? = nil

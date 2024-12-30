@@ -21,6 +21,7 @@ struct ReplyTreeMDB: Codable {
     var fetchedAt: Date
     var sentiment: Float?
     var replies: [ReplyTreeMDB]?
+    var countedReplies: Int?
 }
 
 func postToDoc(_ post: Post) -> ReplyTreeMDB {
@@ -38,7 +39,8 @@ func postToDoc(_ post: Post) -> ReplyTreeMDB {
         handle: post.author.handle,
         fetchedAt: Date(),
         sentiment: nil,
-        replies:nil)
+        replies:nil,
+        countedReplies:nil)
 }
 
 struct DailyStatsMDB : Codable, Identifiable {

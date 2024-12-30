@@ -92,7 +92,7 @@ struct BlueskyFeedHandler {
         var mongoDB : MongoDBHandler? = nil
         mongoDB = try MongoDBHandler()
         
-        var progressIncrement = 1.0 / (Double(targetAccounts.count) - 1)
+        let progressIncrement = 1.0 / (Double(targetAccounts.count) - 1)
         var currentProgress = 0.0
         
         let shuffleAccounts = targetAccounts.shuffled()
