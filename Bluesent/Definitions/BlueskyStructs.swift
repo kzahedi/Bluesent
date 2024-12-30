@@ -73,6 +73,6 @@ struct Author: Codable {
 
 struct AccountFeed: Codable {
     let cursor: String?
-    let posts: [ReplyTreeMDB]
+    let posts: [ReplyTree]
 }
 

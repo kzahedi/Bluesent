@@ -8,19 +8,19 @@ import Foundation
 import MongoSwiftSync
 
 struct BlueskyRepliesHandler {
-    
+    let threadRequestURL = "https://api.bsky.social/xrpc/app.bsky.feed.getPostThread?depth=1000&uri="
+
     private func updateReplies(bskyToken:String,
                                limit:Int,
                                update:Bool = false,
                                earliestDate:Date? = nil,
                                progress:(Double)->()) throws {
-        let threadRequestURL = "https://api.bsky.social/xrpc/app.bsky.feed.getPostThread?depth=1000&uri="
         var mongoDB : MongoDBHandler? = nil
         mongoDB = try MongoDBHandler()
 
         let update = UserDefaults.standard.bool(forKey: labelForceUpdateSentiments)
 
-        var cursor : MongoCursor<ReplyTreeMDB>? = nil;
+        var cursor : MongoCursor<ReplyTree>? = nil;
         var count = 0
         do {
             if update {
@@ -52,7 +52,9 @@ struct BlueskyRepliesHandler {
                     continue
                 }
             }
-            if doc.replies != nil && doc.replies!.count > 0 { continue }
+            if (doc.replies != nil) &&
+                (doc.replies!.count != 0) &&
+                (update == false) { continue }
             let uri = doc._id
             let url = threadRequestURL + uri
             let thread = try getThread(url: url, bskyToken: bskyToken)
@@ -63,9 +65,9 @@ struct BlueskyRepliesHandler {
     }
     
    
-    private func getThread(url:String, bskyToken:String) throws -> ReplyTreeMDB? {
+    private func getThread(url:String, bskyToken:String) throws -> ReplyTree? {
         var feedRequest = URLRequest(url: URL(string: url)!)
-        var returnValue : ReplyTreeMDB? = nil
+        var returnValue : ReplyTree? = nil
         let group = DispatchGroup()
         
         feedRequest.httpMethod = "GET"
@@ -122,17 +124,54 @@ struct BlueskyRepliesHandler {
         }
         feedTask.resume()
         group.wait()
+        
+        if returnValue != nil {
+            var foundNewSubtree = true
+            while foundNewSubtree {
+                foundNewSubtree = try recursiveGetThread(doc: &returnValue!, bskyToken: bskyToken)
+            }
+        }
+        
         return returnValue
     }
     
-    public func extractDocumentFrom(thread:Thread) -> ReplyTreeMDB {
+    public func recursiveGetThread(doc:inout ReplyTree, bskyToken:String) throws -> Bool {
+        if doc.replies == nil || doc.replies!.count == 0 {
+            return false
+        }
+        
+        var foundNewSubTree : Bool = false
+        
+        var new_replies : [ReplyTree] = []
+        for reply in doc.replies! {
+            if reply.replies == nil || reply.replies!.count == 0 { // check for replies
+                let uri = doc._id
+                let url = threadRequestURL + uri
+                var new_doc = try getThread(url: url, bskyToken: bskyToken)
+                if new_doc != nil {
+                    let b = try recursiveGetThread(doc: &new_doc!, bskyToken: bskyToken)
+                    foundNewSubTree = foundNewSubTree || b
+                    new_replies.append(new_doc!)
+                }
+            }
+        }
+        if new_replies.count > 0 {
+            doc.replies = new_replies
+        } else {
+            doc.replies = nil
+        }
+        
+        return (new_replies.count > 0 && foundNewSubTree)
+    }
+    
+    public func extractDocumentFrom(thread:Thread) -> ReplyTree {
         let post = thread.post
         //        print("Working on \(post.uri)")
         let replies = thread.replies ?? []
         var doc = postToDoc(post)
-        var r : [ReplyTreeMDB] = []
+        var r : [ReplyTree] = []
         for reply in replies {
-            let new_doc : ReplyTreeMDB = extractDocumentFrom(thread: reply)
+            let new_doc : ReplyTree = extractDocumentFrom(thread: reply)
             r.append(new_doc)
         }
         doc.replies = r

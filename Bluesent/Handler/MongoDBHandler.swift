@@ -11,21 +11,21 @@ import MongoSwiftSync
 class MongoDBHandler {
     private let client: MongoClient
     private var database: MongoDatabase
-    public let posts: MongoCollection<ReplyTreeMDB>
+    public let posts: MongoCollection<ReplyTree>
     public let statistics: MongoCollection<DailyStatsMDB>
     
     init() throws {
         // Initialize MongoDB client
         client = try MongoClient("mongodb://localhost:27017")
         database = client.db("bluesent")
-        posts = database.collection("posts", withType: ReplyTreeMDB.self)
+        posts = database.collection("posts", withType: ReplyTree.self)
         statistics = database.collection("daily_statistics", withType: DailyStatsMDB.self)
         
         // Create unique index on _id
         // try posts.createIndex(["_id": 1], indexOptions: IndexOptions(unique: true))
     }
     
-    public func saveFeedDocuments(documents: [ReplyTreeMDB]) throws -> Bool {
+    public func saveFeedDocuments(documents: [ReplyTree]) throws -> Bool {
         var found = false
         for document in documents {
             let r = try updateFeedDocument(document: document)
@@ -34,7 +34,7 @@ class MongoDBHandler {
         return found
     }
     
-    public func updateFeedDocument(document:ReplyTreeMDB) throws -> Bool {
+    public func updateFeedDocument(document:ReplyTree) throws -> Bool {
         let filter: BSONDocument = ["_id": .string(document._id)]
         var docForUpdate = document
         var found = false

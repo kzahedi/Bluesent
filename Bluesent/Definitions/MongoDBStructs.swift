@@ -6,26 +6,9 @@
 //
 import Foundation
 
-struct ReplyTreeMDB: Codable {
-    var _id: String  // Using post URI as unique identifier
-    var author: String
-    var did: String
-    var createdAt: Date?
-    var likeCount: Int
-    var quoteCount: Int
-    var replyCount: Int?
-    var repostCount: Int
-    var text: String
-    var title: String?
-    var handle: String
-    var fetchedAt: Date
-    var sentiment: Float?
-    var replies: [ReplyTreeMDB]?
-    var countedReplies: Int?
-}
 
-func postToDoc(_ post: Post) -> ReplyTreeMDB {
-    return ReplyTreeMDB(
+func postToDoc(_ post: Post) -> ReplyTree {
+    return ReplyTree(
         _id: post.uri,
         author: post.author.displayName ?? "NA",
         did: post.author.did,
@@ -40,7 +23,8 @@ func postToDoc(_ post: Post) -> ReplyTreeMDB {
         fetchedAt: Date(),
         sentiment: nil,
         replies:nil,
-        countedReplies:nil)
+        countedReplies:nil,
+        countedRepliesDepth:nil)
 }
 
 struct DailyStatsMDB : Codable, Identifiable {

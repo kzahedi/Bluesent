@@ -128,17 +128,19 @@ public struct ScrapingView: View {
     }
     
     func runCountingReplies() {
-        Task {
-            isCountingReplies = true
-            countRepliesProgress = 0.0
+        DispatchQueue.global(qos: .userInitiated).async {
             do {
-                // Run the blocking task in a background thread
+                isCountingReplies = true
+                countRepliesProgress = 0.0
                 try CountReplies().run(progress: updateCountingRepliesProgress)
+                countRepliesProgress = 1.0
+                isCountingReplies  = false
             } catch {
                 print("Error: \(error)")
             }
-            countRepliesProgress = 1.0
-            isCountingReplies  = false
+            DispatchQueue.main.async {
+                isCountingReplies  = false
+            }
         }
     }
      
