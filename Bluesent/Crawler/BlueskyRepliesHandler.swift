@@ -142,7 +142,7 @@ struct BlueskyRepliesHandler {
         let mongoDB = try MongoDBHandler()
         
         let parameters = BlueskyParameters()
-        let bskyToken = parameters.bskyToken!
+        let bskyToken = parameters.token!
         
         if parameters.valid == false {
             print("Parameters invalid")

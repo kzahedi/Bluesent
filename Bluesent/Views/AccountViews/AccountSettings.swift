@@ -10,6 +10,7 @@ import SwiftUI
 
 struct AccountSettings : View {
     private var did : String = ""
+    private var account : Account?
     
     @State var active : Bool = true
     @State var forceUpdateFeed : Bool = true
@@ -19,21 +20,23 @@ struct AccountSettings : View {
     @State var date : Date = Date()
     @State var nrOfDays : String = ""
     @State var minDaysBeforeUpdate : Int = 0
-
+    
+    @State private var scrapingProgress: Double = 0
+    @State private var isFeedScraping: Bool = false
+    
     init(did:String) {
         self.did = did
-        print("Setting did \(did)")
-        
+        self.account = AccountStore.shared.getAccountBy(did: did) ?? nil
     }
     
     public func initialiseValues() {
         active = UserDefaults.standard.valueExists(forKey: "\(labelActiveAccount)_\(self.did)") ?
         UserDefaults.standard.bool(forKey: "\(labelActiveAccount)_\(self.did)") : true
-                                
+        
         forceUpdateFeed = UserDefaults.standard.boolValueAlternate(
             firstKey: "\(labelForceUpdateFeed)_\(self.did)",
             alternateKey: labelForceUpdateFeed) ?? false
- 
+        
         forceUpdateReply = UserDefaults.standard.bool(forKey:"\(labelForceUpdateReplies)_\(self.did)")
         forceUpdateSentiments = UserDefaults.standard.bool(forKey: "\(labelForceUpdateSentiments)_\(self.did)")
         
@@ -46,10 +49,8 @@ struct AccountSettings : View {
             alternateKey: labelScrapingMinDaysForUpdate) ?? 0
         
         nrOfDays = String(minDaysBeforeUpdate)
-
+        
     }
-    
-    
     
     var body: some View {
         Form {
@@ -62,7 +63,8 @@ struct AccountSettings : View {
                     .datePickerStyle(.field)
                     .onChange(of: date) {
                         let d = date.setToStartOfDay()
-                        UserDefaults.standard.set(d, forKey: "\(labelScrapingDate)_\(self.did)")
+                        UserDefaults.standard
+                            .set(d, forKey: account!.scrapingDateLabel)
                     }
                 }
                 .padding()
@@ -70,7 +72,7 @@ struct AccountSettings : View {
             Divider()
             Section {
                 HStack {
-                    TextField("Minimum days before", text: $nrOfDays)
+                    TextField("Minimum days before\nreplies are scraped", text: $nrOfDays)
                         .onChange(of: nrOfDays) {
                             if let i = Int(nrOfDays) {
                                 minDaysBeforeUpdate = i
@@ -95,7 +97,7 @@ struct AccountSettings : View {
                         UserDefaults.standard.set(active, forKey:"\(labelActiveAccount)_\(self.did)")
                     }
                 }
-
+                
                 HStack {
                     Toggle(isOn: $forceUpdateFeed) {
                         Text("Force update of feed")
@@ -104,7 +106,7 @@ struct AccountSettings : View {
                         UserDefaults.standard.set(forceUpdateFeed, forKey: "\(labelForceUpdateFeed)_\(self.did)")
                     }
                 }
-
+                
                 HStack {
                     Toggle(isOn: $forceUpdateReply) {
                         Text("Force update of reply trees")
@@ -124,12 +126,40 @@ struct AccountSettings : View {
                 }
             }
             Divider()
+            Section() {
+                Grid(alignment:.trailing) {
+                    GridRow{
+                        Text("Scrape Feed")
+                            .gridColumnAlignment(.leading)
+                        Button("Run") {
+                            runFeedCrawler()
+                        }
+                        .disabled(isFeedScraping) // Disable button while scraping is in progress
+                        if isFeedScraping {
+                            Text("Scraper still running")
+                        } else {
+                            Text("")
+                        }
+                    }
+                }
+                .padding(.top)
+                .padding(.trailing)
+            }
         }
         .onAppear() { initialiseValues() }
     }
-        
+    
+    func runFeedCrawler() {
+        isFeedScraping = true
+        DispatchQueue.background(delay: 3.0, background: {
+            if account != nil {
+                account!.scrapeFeed()
+            }
+        }, completion: {
+            isFeedScraping = false
+        })
+    }
 }
-
 
 #Preview{
     AccountSettings(did:"did:plc:42pjb4dy3p3ubiekmwpkthen")

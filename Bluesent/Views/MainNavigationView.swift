@@ -17,14 +17,15 @@ struct MainNavigationView: View {
                 NavigationLink(destination: ScrapingView()){
                     Label("Scraping", systemImage: "arrow.2.circlepath")
                 }
-                .padding(.bottom)
+                .padding()
                 NavigationLink(destination:Text("Analysis")){
                     Label("Analysis", systemImage: "magnifyingglass")
                 }
-                .padding(.bottom)
+                .padding()
                 NavigationLink(destination:AccountSettingsNavigation()){
-                    Label("Accounts", systemImage: "gearshape")
+                    Label("Settings", systemImage: "gearshape")
                 }
+                .padding()
             }
         }
         .frame(maxWidth:.infinity, maxHeight:.infinity)

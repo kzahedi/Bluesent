@@ -88,9 +88,10 @@ public struct ScrapingView: View {
         isFeedScraping = true
         DispatchQueue.global(qos: .userInitiated).async {
             do {
+//                account.run
                 // Run the blocking task in a background thread
-//                try BlueskyFeedHandler().run(progress: updateFeedProgress)
-                try BlueskyFeedHandler().runFor()
+//                try BlueskyFeedHandler().runFor(did:did,
+//                                                handle:handle)
             } catch {
                 print("Error: \(error)")
             }

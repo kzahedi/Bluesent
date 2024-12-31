@@ -19,10 +19,10 @@ public class AccountStore : ObservableObject {
         } catch {
             print(error)
         }
-        
-        for account in self.accounts {
-            account.prettyPrint()
-        }
+    }
+    
+    public func getAccountBy(did:String) -> Account? {
+        return accounts.first { $0.did == did }
     }
     
     

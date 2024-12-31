@@ -17,15 +17,22 @@ public struct Account : Identifiable {
     public var author : String = ""
     public var handle : String = ""
     public var did : String = ""
-    public var firstDate : Date? = nil
-    public var forceUpdateFeed : Bool = false
-    public var forceUpdateReplyTree : Bool = false
-    public var forceUpdateSentiment: [String: Bool] = ["NSTagger": false]
-    public var active : Bool = false
+    
+    public var scrapingDateLabel : String = ""
+    public var activeLabel : String = ""
+    public var forceFeedUpdateLabel : String = ""
+    public var forceReplyTreeUpdateLabel : String = ""
+    public var forceSentimentUpdateLabel : String = ""
 
     init(handle:String) throws {
         self.handle = handle
         self.did = resolveDID(handle: handle)!
+        self.scrapingDateLabel = "\(labelScrapingDate)_\(self.did)"
+        self.activeLabel = "\(labelActiveAccount)_\(self.did)"
+        self.forceFeedUpdateLabel = "\(labelForceUpdateFeed)_\(self.did)"
+        self.forceReplyTreeUpdateLabel = "\(labelForceUpdateReplies)_\(self.did)"
+        self.forceSentimentUpdateLabel = "\(labelForceUpdateSentiments)_\(self.did)"
+        
 
         var client = try MongoClient("mongodb://localhost:27017")
         client = try MongoClient("mongodb://localhost:27017")
@@ -34,7 +41,6 @@ public struct Account : Identifiable {
        
         self.author = try getUniqueValues(fieldName: "author") ?? "N/A"
         
-        updateFromUserDefaults()
     }
     
     private func getUniqueValues(fieldName:String) throws -> String? {
@@ -51,29 +57,26 @@ public struct Account : Identifiable {
         return nil
     }
     
-    private mutating func updateFromUserDefaults(){
-        self.active = UserDefaults.standard.bool(forKey: "\(labelActiveAccount)_\(self.did)")
-        self.forceUpdateFeed = UserDefaults.standard.bool(forKey: "\(labelForceUpdateFeed)_\(self.did)")
-        self.forceUpdateReplyTree = UserDefaults.standard.bool(forKey: "\(labelForceUpdateReplies)_\(self.did)")
-        for key in self.forceUpdateSentiment.keys {
-            let keyString = "\(labelForceUpdateSentiments)_\(key)_\(self.did)"
-            self.forceUpdateSentiment[key] = UserDefaults.standard.bool(forKey: keyString)
+    public func scrapeFeed() {
+        
+        let firstDate = UserDefaults.standard.dateValueAlternate(
+            firstKey: scrapingDateLabel,
+            alternateKey: labelScrapingDate) ?? nil
+        
+        let forceUpdateFeed = UserDefaults.standard.boolValueAlternate(
+            firstKey: forceFeedUpdateLabel, alternateKey: labelForceUpdateFeed) ?? false
+            
+        
+        do {
+            try BlueskyFeedHandler().runFor(did:did,
+                                            handle:handle,
+                                            earliestDate: firstDate,
+                                            forceUpdate: forceUpdateFeed)
+                                            
+        } catch {
+             print(error)
         }
-    }
-    
-    public func prettyPrint(){
-        print("Account:")
-        print("  did    \(self.did)")
-        print("  handle \(self.handle)")
-        print("  author \(self.author)")
-        print("  active \(self.active)")
-        print("  Updates:")
-        print("    Force Feed Update \(self.forceUpdateFeed ? "ON" : "OFF")")
-        print("    Force Reply Tree Update \(self.forceUpdateReplyTree ? "ON" : "OFF")")
-        print("    Force Sentiment Updates:")
-        for key in self.forceUpdateSentiment.keys {
-            print("      \(key) \(self.forceUpdateSentiment[key]! ? "ON" : "OFF")")
-        }
+ 
     }
     
 }

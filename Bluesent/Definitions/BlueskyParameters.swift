@@ -22,10 +22,9 @@ struct TokenResponse: Codable {
 struct BlueskyParameters {
     public var sourceAccount: String = ""
     public var appPassword: String = ""
-    public var targetAccounts: [(String,String)] = []
     public var valid : Bool = false
     public var sourceDID : String? = nil
-    public var bskyToken : String? = nil
+    public var token : String? = nil
     public var limit = 0
     public var firstDate = Date()
      
@@ -33,18 +32,10 @@ struct BlueskyParameters {
         var errorMsg : String = ""
         let sa = Credentials.shared.getUsername()
         let ap = Credentials.shared.getPassword()
-        let ta = UserDefaults.standard.stringArray(forKey: "targetAccounts")
         
         self.limit = UserDefaults.standard.integer(forKey: labelScrapingBatchSize)
         self.firstDate = UserDefaults.standard.object(forKey: labelScrapingDate) as! Date
-        
-        if ta != nil {
-            self.targetAccounts = ta!.map{($0, resolveDID(handle: $0) ?? "")}
-            print("Target accounts: \(ta!)")
-        } else {
-            print("No target accounts given")
-        }
-        
+       
         if sa == nil || sa!.isEmpty{
             errorMsg += "Source account is missing.\n"
         } else {
@@ -67,8 +58,8 @@ struct BlueskyParameters {
             return
         }
         
-        self.bskyToken = getToken()
-        if bskyToken == nil {
+        self.token = getToken()
+        if token == nil {
             print("Error receiving token")
             return
         }
