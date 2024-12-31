@@ -29,7 +29,11 @@ struct AccountSettingsNavigation: View {
                 
                 ForEach($accountsStores.accounts) { $account in
                     NavigationLink(destination: AccountSettings(did:account.did)) {
-                        Label("\(account.handle)", systemImage: "arrow.2.circlepath")
+                        if account.author == "N/A" {
+                            Label("\(account.handle)", systemImage: "arrow.2.circlepath")
+                        } else {
+                            Label("\(account.author)", systemImage: "arrow.2.circlepath")
+                        }
                     }
                     .padding(.bottom)
                 }

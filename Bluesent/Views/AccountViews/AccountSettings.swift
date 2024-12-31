@@ -22,8 +22,7 @@ struct AccountSettings : View {
 
     init(did:String) {
         self.did = did
-        
-        initialiseValues()
+        print("Setting did \(did)")
         
     }
     
@@ -46,7 +45,6 @@ struct AccountSettings : View {
             firstKey: "\(labelScrapingMinDaysForUpdate)_\(self.did)",
             alternateKey: labelScrapingMinDaysForUpdate) ?? 0
         
-        print("Minimun \(minDaysBeforeUpdate)")
         nrOfDays = String(minDaysBeforeUpdate)
 
     }
@@ -127,7 +125,9 @@ struct AccountSettings : View {
             }
             Divider()
         }
+        .onAppear() { initialiseValues() }
     }
+        
 }
 
 

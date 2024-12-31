@@ -26,29 +26,23 @@ public class AccountStore : ObservableObject {
     }
     
     
-    
     public func updateAccountList() throws {
         
-        let names : [String] = UserDefaults.standard.stringArray(forKey: labelListOfAccounts) ?? []
+        var handles : [String] = UserDefaults.standard.stringArray(forKey: labelListOfAccounts) ?? []
         
-        print(names)
-        
-        let dids : [String] = names
-            .map{resolveDID(handle:$0) ?? ""}
-            .filter { !$0.isEmpty }
-        
+        handles = handles.filter { !$0.isEmpty }
         
         if accounts.isEmpty {
-            for did in dids {
-                let a = try Account(did:did)
+            for handle in handles {
+                let a = try Account(handle:handle)
                 accounts.append(a)
             }
         } else {
-            let available_dids = accounts.map { $0.did }
-            let missing_dids = dids.filter { !available_dids.contains($0) }
+            let available_handles = accounts.map { $0.handle }
+            let missing_handles = handles.filter { !available_handles.contains($0) }
             
-            for did in missing_dids {
-                let a = try Account(did:did)
+            for handle in missing_handles {
+                let a = try Account(handle:handle)
                 accounts.append(a)
             }
         }

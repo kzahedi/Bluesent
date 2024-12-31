@@ -10,6 +10,8 @@ import SwiftUI
 
 public struct ListOfAccountsView : View {
     
+    @ObservedObject var accountStore = AccountStore.shared
+    
     @State private var listOfAccounts : [String] = [];
     @State private var newTargetAccount: String = ""
     
@@ -36,6 +38,11 @@ public struct ListOfAccountsView : View {
                     listOfAccounts.append(target)
                     newTargetAccount = ""
                     saveEntries()
+                    do {
+                        try accountStore.updateAccountList()
+                    } catch {
+                        print(error)
+                    }
                 }
                 Spacer()
             }

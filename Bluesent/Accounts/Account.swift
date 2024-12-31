@@ -23,16 +23,16 @@ public struct Account : Identifiable {
     public var forceUpdateSentiment: [String: Bool] = ["NSTagger": false]
     public var active : Bool = false
 
-    init(did: String) throws {
-        self.did = did
-        
+    init(handle:String) throws {
+        self.handle = handle
+        self.did = resolveDID(handle: handle)!
+
         var client = try MongoClient("mongodb://localhost:27017")
         client = try MongoClient("mongodb://localhost:27017")
         db = client.db("bluesent")
         posts = db!.collection("posts", withType: ReplyTree.self)
        
         self.author = try getUniqueValues(fieldName: "author") ?? "N/A"
-        self.handle = try getUniqueValues(fieldName: "handle") ?? "N/A"
         
         updateFromUserDefaults()
     }
