@@ -8,10 +8,10 @@ import Foundation
 import MongoSwiftSync
 
 struct BlueskyRepliesHandler {
-    var bskyToken:String = ""
-    var mongoDB : MongoDBHandler? = nil
-
-    private func getCursor(update:Bool = false, earliestDate:Date? = nil) throws -> (MongoCursor<ReplyTree>?, Int) {
+    private func getCursor(update:Bool = false, earliestDate:Date? = nil, mongoDB: MongoDBHandler) throws -> (
+        MongoCursor<ReplyTree>?,
+        Int
+    ) {
 
         let update = UserDefaults.standard.bool(forKey: labelForceUpdateSentiments)
 
@@ -19,14 +19,13 @@ struct BlueskyRepliesHandler {
         var count : Int = 0
         do {
             if update {
-                cursor  = try mongoDB!.posts.find([:])
-                count = try mongoDB!.posts.countDocuments([:])
+                cursor  = try mongoDB.posts.find([:])
+                count = try mongoDB.posts.countDocuments([:])
             } else {
-                var query: BSONDocument = ["replies.0" : ["$exists":false], "replyCount": ["$gt":0, "$lt" : 5]]
-//                var query: BSONDocument = ["replyCount": ["$gt":0, "$lt" : 5]]
-                let options = FindOptions(sort: ["replyCount": -1])
-                cursor  = try mongoDB!.posts.find(query, options: options)
-                count = try mongoDB!.posts.countDocuments(query)
+                let query: BSONDocument = ["replies.0" : ["$exists":false], "replyCount": ["$gt":0]]
+                let options = FindOptions(sort: ["replyCount": 1])
+                cursor  = try mongoDB.posts.find(query, options: options)
+                count = try mongoDB.posts.countDocuments(query)
             }
         } catch {
             print(error)
@@ -39,13 +38,13 @@ struct BlueskyRepliesHandler {
     }
     
    
-    private func getThread(url:URL) throws -> ReplyTree? {
+    private func getThread(url:URL, bskyToken:String) throws -> ReplyTree? {
         var feedRequest = URLRequest(url: url)
         var tree : ReplyTree? = nil
         let group = DispatchGroup()
         
         feedRequest.httpMethod = "GET"
-        feedRequest.setValue("Bearer \(self.bskyToken)", forHTTPHeaderField: "Authorization")
+        feedRequest.setValue("Bearer \(bskyToken)", forHTTPHeaderField: "Authorization")
         
         group.enter()
         let feedTask = URLSession.shared.dataTask(with: feedRequest) { data, response, error in
@@ -139,20 +138,19 @@ struct BlueskyRepliesHandler {
         return false
     }
     
-    public mutating func run(progress: (Double)->()) throws {
-        if mongoDB == nil {
-            mongoDB = try MongoDBHandler()
-        }
+    public func run(progress: (Double)->()) throws {
+        let mongoDB = try MongoDBHandler()
+        
         let parameters = BlueskyParameters()
+        let bskyToken = parameters.bskyToken!
+        
         if parameters.valid == false {
             print("Parameters invalid")
             return
         }
         
-        self.bskyToken = parameters.bskyToken!
-        
         let update : Bool = UserDefaults.standard.bool(forKey: labelForceUpdateReplies)
-        let (cursor, count) = try getCursor(update:update, earliestDate: parameters.firstDate)
+        let (cursor, count) = try getCursor(update:update, earliestDate: parameters.firstDate, mongoDB: mongoDB)
         
         if cursor == nil {
             return
@@ -161,7 +159,10 @@ struct BlueskyRepliesHandler {
         var step : Double = 0.0
         let dCount : Double = Double(count)
         
+        let group = DispatchGroup()
+        
         for document in cursor! {
+            
             step = step + 1.0
             progress(step / dCount)
 //            print("Progress \(step) / \(count) : \(step / Double(count-1))")
@@ -169,14 +170,21 @@ struct BlueskyRepliesHandler {
             var doc = try document.get()
             if skip(doc: doc) { continue }
             
-            print("Running for \(doc._id)")
-            
-            recursiveGetThread(doc: &doc)
-            
-            let check = try mongoDB!.updateFeedDocument(document: doc)
-            if check != true {
-                print("Error. Document must have been in collection but was not \(doc._id)")
-            }
+            group.enter()
+            DispatchQueue.global(qos: .background)
+                .async {
+                    recursiveGetThread(doc: &doc, bskyToken:bskyToken)
+                    
+                    do {
+                        let check = try mongoDB.updateFeedDocument(document: doc)
+                    if check != true {
+                        print("Error. Document must have been in collection but was not \(doc._id)")
+                    }
+                    } catch {
+                        print(error)
+                    }
+                    group.leave()
+                }
         }
     }
     
@@ -185,16 +193,16 @@ struct BlueskyRepliesHandler {
         return URL(string: url)!
     }
     
-    public func recursiveGetThread(doc:inout ReplyTree) {
+    public func recursiveGetThread(doc:inout ReplyTree, bskyToken:String) {
         
-        print("Recursive \(doc._id)")
+//        print("Recursive \(doc._id)")
         
         if doc.replies == nil || doc.replies!.count == 0 {
             // only get new subtrees for nodes hat have no children
             let url = createRequestURL(uri:doc._id)
             do {
 //                print("Getting subtree")
-                let subTree = try getThread(url: url)
+                let subTree = try getThread(url: url, bskyToken: bskyToken)
                 if subTree != nil {
                     doc.replies = subTree!.replies
                 } else {
@@ -208,7 +216,7 @@ struct BlueskyRepliesHandler {
         if doc.replies != nil {
 //            print("Iterating over \(doc.replies!.count) replies")
             for index in doc.replies!.indices {
-                recursiveGetThread(doc: &doc.replies![index])
+                recursiveGetThread(doc: &doc.replies![index], bskyToken: bskyToken)
             }
         }
     }

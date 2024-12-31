@@ -117,6 +117,7 @@ struct BlueskyParameters {
                 returnValue = handleResponse.did
                 group.leave()
             } catch {
+                prettyPrintJSON(data: data!)
                 print("Error decoding handle response: \(error.localizedDescription)")
                 group.leave()
             }
