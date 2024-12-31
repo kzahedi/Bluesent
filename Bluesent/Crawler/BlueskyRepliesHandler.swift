@@ -159,7 +159,7 @@ struct BlueskyRepliesHandler {
         var step : Double = 0.0
         let dCount : Double = Double(count)
         
-        let group = DispatchGroup()
+//        let group = DispatchGroup()
         
         for document in cursor! {
             
@@ -170,9 +170,9 @@ struct BlueskyRepliesHandler {
             var doc = try document.get()
             if skip(doc: doc) { continue }
             
-            group.enter()
-            DispatchQueue.global(qos: .background)
-                .async {
+//            group.enter()
+//            DispatchQueue.global(qos: .background)
+//                .async {
                     recursiveGetThread(doc: &doc, bskyToken:bskyToken)
                     
                     do {
@@ -183,8 +183,8 @@ struct BlueskyRepliesHandler {
                     } catch {
                         print(error)
                     }
-                    group.leave()
-                }
+//                    group.leave()
+//                }
         }
     }
     

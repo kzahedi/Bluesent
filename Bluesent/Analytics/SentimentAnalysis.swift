@@ -10,45 +10,58 @@ import NaturalLanguage
 import MongoSwiftSync
 
 struct SentimentAnalysis {
-    private let tagger = NLTagger(tagSchemes: [.sentimentScore])
     
     public func run(all:Bool = false, progress: (Double) -> ()) throws {
         print("Running sentiment analysis")
-        let update : Bool = UserDefaults.standard.bool(forKey: labelForceUpdateSentiments)
-        var mongoDB : MongoDBHandler? = nil
-        
-        do {
-            mongoDB = try MongoDBHandler()
-        } catch {
-            print(error)
-            return
-        }
-        
-        var query : BSONDocument = [:]
-        if all || update {
-        } else {
-            query = ["sentiment": ["$exists": false]]
-        }
-        
-        let cursor : MongoCursor<ReplyTree> = try mongoDB!.posts.find(query)
-        let count : Double = Double(try mongoDB!.posts.countDocuments(query))
-        var n : Double = 0.0
-
-        for document in cursor {
-            n = n + 1
-            progress( n / count)
-            var doc : ReplyTree = try document.get()
-            if doc.text.count == 0 {
-                doc.sentiment = 0.0
-            } else {
-                modifyReplyTree(&doc, modify:calculateSentiment)
+        Task{
+            let update : Bool = UserDefaults.standard.bool(forKey: labelForceUpdateSentiments)
+            var mongoDB : MongoDBHandler? = nil
+            
+            do {
+                mongoDB = try MongoDBHandler()
+            } catch {
+                print(error)
+                return
             }
-            let _ = try mongoDB!.updateFeedDocument(document: doc)
+            
+            var query : BSONDocument = [:]
+            if all || update {
+            } else {
+                query = ["sentiment": ["$exists": false]]
+            }
+            
+            let cursor : MongoCursor<ReplyTree> = try mongoDB!.posts.find(query)
+            let count : Double = Double(try mongoDB!.posts.countDocuments(query))
+            var n : Double = 0.0
+            
+            let group = DispatchGroup()
+            
+            for document in cursor {
+                n = n + 1
+//                progress( n / count)
+                group.enter()
+                DispatchQueue.global(qos: .background)
+                    .async {
+                        do {
+                            var doc : ReplyTree = try document.get()
+                            if doc.text.count == 0 {
+                                doc.sentiment = 0.0
+                            } else {
+                                modifyReplyTree(&doc, modify:calculateSentiment)
+                            }
+                            let _ = try mongoDB!.updateFeedDocument(document: doc)
+                        } catch {
+                            print(error)
+                        }
+                        group.leave()
+                    }
+            }
         }
         print("Done with sentiment analysis")
     }
     
     private func calculateSentiment(doc: inout ReplyTree) -> Void {
+        let tagger = NLTagger(tagSchemes: [.sentimentScore])
         var text = doc.text
         text = text.replacingOccurrences(of: "\\r?\\n", with: "", options: .regularExpression)
         tagger.string = text
