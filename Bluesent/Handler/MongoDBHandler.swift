@@ -26,19 +26,19 @@ class MongoDBHandler {
     }
     
     public func saveFeedDocuments(documents: [ReplyTree]) throws -> Bool {
-        var found = false
+        var foundAll = true
         for document in documents {
             let r = try updateFeedDocument(document: document)
-            found = found || r
+            foundAll = foundAll && r
         }
-        return found
+        return foundAll
     }
     
     public func updateFeedDocument(document:ReplyTree) throws -> Bool {
         let filter: BSONDocument = ["_id": .string(document._id)]
         var docForUpdate = document
         var found = false
-        let xDays = UserDefaults.standard.integer(forKey: labelScrapingAutoUpdateDays)
+        let xDays = UserDefaults.standard.integer(forKey: labelScrapingMinDaysForUpdate)
         
         let doc = try posts.findOne(filter) // if document is found, only update stats
         

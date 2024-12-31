@@ -22,17 +22,12 @@ struct SettingsView: View {
                     Label("List of Accounts", systemImage: "paintpalette")
                 }
             
-            CrawlerSettings()
+            GeneralCrawlerSettings()
                 .tabItem {
                     Label("Crawler Settings", systemImage: "hand.raised")
                 }
-            
-            AnalyticsSettings()
-                .tabItem {
-                    Label("Analytics Settings", systemImage: "hand.raised")
-                }
-            
         }
+        .frame(minWidth:400, minHeight: 400)
     }
 }
 

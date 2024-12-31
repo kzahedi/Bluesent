@@ -8,7 +8,7 @@
 import Foundation
 import SwiftUI
 
-struct CrawlerSettings: View {
+struct GeneralCrawlerSettings : View {
     private let maxLimit : Int = 100
     @State var date: Date = Date()
     @State var iLimit: Int = 100
@@ -20,6 +20,7 @@ struct CrawlerSettings: View {
 
     var body: some View {
         Form {
+            Divider()
             Section {
                 HStack {
                     DatePicker(selection: $date,
@@ -34,7 +35,9 @@ struct CrawlerSettings: View {
                         date = UserDefaults.standard.object(forKey: labelScrapingDate) as! Date
                     }
                 }
-                
+                .padding()
+
+                Divider()
                 HStack {
                     TextField("Scraping Batch Size", text: $limit)
                         .onChange(of: limit) {
@@ -52,27 +55,34 @@ struct CrawlerSettings: View {
                             limit = String(iLimit)
                         }
                 }
-                
+                .padding(.top)
+                .padding(.trailing)
+                .padding(.leading)
+
                 HStack {
-                    TextField("Auto udpate days", text: $nrOfDays)
+                    TextField("Minimum days before", text: $nrOfDays)
                         .onChange(of: nrOfDays) {
                             if let i = Int(nrOfDays) {
                                 iNrOfDays = i
                                 if i < 0 { iNrOfDays = 0 }
-                                UserDefaults.standard.set(iNrOfDays, forKey: labelScrapingAutoUpdateDays)
+                                UserDefaults.standard.set(iNrOfDays, forKey: labelScrapingMinDaysForUpdate)
                             } else {
                                 // error message
                             }
                         }
                         .onAppear() {
-                            iNrOfDays = UserDefaults.standard.integer(forKey: labelScrapingAutoUpdateDays)
+                            iNrOfDays = UserDefaults.standard.integer(forKey: labelScrapingMinDaysForUpdate)
                             nrOfDays = String(iNrOfDays)
                         }
                 }
-                
+                .padding(.bottom)
+                .padding(.trailing)
+                .padding(.leading)
+
+                Divider()
                 HStack {
                     Toggle(isOn: $updateFeed) {
-                        Text(labelForceUpdateFeed)
+                        Text("Force the update of the account feed")
                     }
                     .onChange(of: updateFeed) {
                         UserDefaults.standard.set(updateFeed, forKey: labelForceUpdateFeed)
@@ -81,7 +91,8 @@ struct CrawlerSettings: View {
                         updateFeed = UserDefaults.standard.bool(forKey: labelForceUpdateFeed)
                     }
                 }
-                
+                .padding(.trailing)
+
                 HStack {
                     Toggle(isOn: $updateReplies) {
                         Text("Force update replies")
@@ -93,6 +104,8 @@ struct CrawlerSettings: View {
                         updateReplies = UserDefaults.standard.bool(forKey: labelForceUpdateReplies)
                     }
                 }
+                .padding(.trailing)
+                .padding(.bottom)
             }
         }
         .frame(width: 400)
@@ -124,5 +137,5 @@ struct CrawlerSettings: View {
 }
 
 #Preview{
-    CrawlerSettings()
+    GeneralCrawlerSettings()
 }

@@ -22,13 +22,6 @@ func convertToDate(from isoString: String) -> Date? {
 
     let normalizedString = isoString.trimmingCharacters(in: .whitespacesAndNewlines)
 
-    // Debugging: Print character details
-//    print("Input String: '\(isoString)'")
-//    print("Normalized String: '\(normalizedString)'")
-//    for (index, char) in normalizedString.enumerated() {
-//        print("Char \(index): '\(char)' (ASCII: \(char.asciiValue ?? 0))")
-//    }
-
     // Attempt ISO8601 parsing
     if let date = isoFormatter.date(from: normalizedString) {
         return date

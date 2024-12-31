@@ -22,6 +22,7 @@ public struct ListOfAccountsView : View {
                 }
                 .onMove(perform: move)
                 .onDelete(perform: delete)
+                .padding(.bottom)
             }
             HStack{
                 TextField("Add Account", text: $newTargetAccount)
@@ -47,18 +48,20 @@ public struct ListOfAccountsView : View {
     
     func move(from source: IndexSet, to destination: Int) {
         listOfAccounts.move(fromOffsets: source, toOffset: destination)
+        saveEntries()
     }
     
     func delete(offsets: IndexSet) {
         listOfAccounts.remove(atOffsets: offsets)
+        saveEntries()
     }
     
     private func loadEntries() {
-        listOfAccounts = UserDefaults.standard.array(forKey: "targetAccounts") as? [String] ?? []
+        listOfAccounts = UserDefaults.standard.array(forKey: labelListOfAccounts) as? [String] ?? []
     }
 
     private func saveEntries() {
-        UserDefaults.standard.set(listOfAccounts, forKey: "targetAccounts")
+        UserDefaults.standard.set(listOfAccounts, forKey: labelListOfAccounts)
     }
 
 }

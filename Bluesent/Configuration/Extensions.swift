@@ -7,13 +7,6 @@
 
 import Foundation
 
-extension UserDefaults {
-
-    func valueExists(forKey key: String) -> Bool {
-        return object(forKey: key) != nil
-    }
-
-}
 
 extension Date {
 

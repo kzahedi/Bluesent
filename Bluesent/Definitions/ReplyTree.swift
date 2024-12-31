@@ -20,10 +20,19 @@ struct ReplyTree: Codable {
     var title: String?
     var handle: String
     var fetchedAt: Date
-    var sentiment: Float?
+    var sentiment: [SentimentAnalysisResult]?
     var replies: [ReplyTree]?
     var countedReplies: Int?
     var countedRepliesDepth: Int?
+}
+
+struct SentimentAnalysisResult: Codable {
+    var model : String?
+    var score : Double?
+    init(model: String, score: Double) {
+        self.model = model
+        self.score = score
+    }
 }
     
     

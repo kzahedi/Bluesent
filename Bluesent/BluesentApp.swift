@@ -12,11 +12,17 @@ import SwiftUI
 struct BluesentApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     
+    private let accountStore = AccountStore.shared
+    
     var body: some Scene {
         WindowGroup{
             MainNavigationView()
         }
+        Settings {
+            SettingsView()
+        }
     }
+
 }
 
 

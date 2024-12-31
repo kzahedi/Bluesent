@@ -12,9 +12,9 @@ struct BlueskyRepliesHandler {
         MongoCursor<ReplyTree>?,
         Int
     ) {
-
+        
         let update = UserDefaults.standard.bool(forKey: labelForceUpdateSentiments)
-
+        
         var cursor : MongoCursor<ReplyTree>? = nil;
         var count : Int = 0
         do {
@@ -37,7 +37,7 @@ struct BlueskyRepliesHandler {
         return (cursor, count)
     }
     
-   
+    
     private func getThread(url:URL, bskyToken:String) throws -> ReplyTree? {
         var feedRequest = URLRequest(url: url)
         var tree : ReplyTree? = nil
@@ -107,7 +107,7 @@ struct BlueskyRepliesHandler {
         return tree
     }
     
-   
+    
     
     public func extractDocumentFrom(thread:Thread) -> [ReplyTree] {
         var r : [ReplyTree] = []
@@ -159,32 +159,25 @@ struct BlueskyRepliesHandler {
         var step : Double = 0.0
         let dCount : Double = Double(count)
         
-//        let group = DispatchGroup()
-        
         for document in cursor! {
             
             step = step + 1.0
             progress(step / dCount)
-//            print("Progress \(step) / \(count) : \(step / Double(count-1))")
+            //            print("Progress \(step) / \(count) : \(step / Double(count-1))")
             
             var doc = try document.get()
             if skip(doc: doc) { continue }
             
-//            group.enter()
-//            DispatchQueue.global(qos: .background)
-//                .async {
-                    recursiveGetThread(doc: &doc, bskyToken:bskyToken)
-                    
-                    do {
-                        let check = try mongoDB.updateFeedDocument(document: doc)
-                    if check != true {
-                        print("Error. Document must have been in collection but was not \(doc._id)")
-                    }
-                    } catch {
-                        print(error)
-                    }
-//                    group.leave()
-//                }
+            recursiveGetThread(doc: &doc, bskyToken:bskyToken)
+            
+            do {
+                let check = try mongoDB.updateFeedDocument(document: doc)
+                if check != true {
+                    print("Error. Document must have been in collection but was not \(doc._id)")
+                }
+            } catch {
+                print(error)
+            }
         }
     }
     
@@ -195,13 +188,13 @@ struct BlueskyRepliesHandler {
     
     public func recursiveGetThread(doc:inout ReplyTree, bskyToken:String) {
         
-//        print("Recursive \(doc._id)")
+        //        print("Recursive \(doc._id)")
         
         if doc.replies == nil || doc.replies!.count == 0 {
             // only get new subtrees for nodes hat have no children
             let url = createRequestURL(uri:doc._id)
             do {
-//                print("Getting subtree")
+                //                print("Getting subtree")
                 let subTree = try getThread(url: url, bskyToken: bskyToken)
                 if subTree != nil {
                     doc.replies = subTree!.replies
@@ -214,7 +207,7 @@ struct BlueskyRepliesHandler {
         }
         
         if doc.replies != nil {
-//            print("Iterating over \(doc.replies!.count) replies")
+            //            print("Iterating over \(doc.replies!.count) replies")
             for index in doc.replies!.indices {
                 recursiveGetThread(doc: &doc.replies![index], bskyToken: bskyToken)
             }

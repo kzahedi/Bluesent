@@ -45,7 +45,7 @@ struct SentimentAnalysis {
                         do {
                             var doc : ReplyTree = try document.get()
                             if doc.text.count == 0 {
-                                doc.sentiment = 0.0
+                                doc.sentiment = nil
                             } else {
                                 modifyReplyTree(&doc, modify:calculateSentiment)
                             }
@@ -67,9 +67,18 @@ struct SentimentAnalysis {
         tagger.string = text
         let sentimentScore = tagger.tag(at: text.startIndex, unit: .paragraph, scheme: .sentimentScore)
         if sentimentScore.0 != nil {
-            doc.sentiment = Float(sentimentScore.0!.rawValue)
+            let score = Double(sentimentScore.0!.rawValue)
+            if doc.sentiment == nil {
+                doc.sentiment = []
+            }
+            if score != nil {
+                let sentimentScore = SentimentAnalysisResult(model: "NLTagger", score:score!)
+                doc.sentiment!.append(sentimentScore)
+            } else {
+                doc.sentiment = nil
+            }
         } else {
-            doc.sentiment = 0.0
+            doc.sentiment = nil
         }
     }
     

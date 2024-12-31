@@ -8,11 +8,12 @@
 import Foundation
 import SwiftUI
 
-
 struct MainNavigationView: View {
+    
+   
     var body: some View {
         NavigationView {
-            List{
+            List {
                 NavigationLink(destination: ScrapingView()){
                     Label("Scraping", systemImage: "arrow.2.circlepath")
                 }
@@ -21,8 +22,8 @@ struct MainNavigationView: View {
                     Label("Analysis", systemImage: "magnifyingglass")
                 }
                 .padding(.bottom)
-                NavigationLink(destination:SettingsView()){
-                    Label("Settings", systemImage: "gearshape")
+                NavigationLink(destination:AccountSettingsNavigation()){
+                    Label("Accounts", systemImage: "gearshape")
                 }
             }
         }
