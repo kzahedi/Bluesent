@@ -28,7 +28,7 @@ struct AccountSettingsNavigation: View {
                 .padding(.bottom)
                 
                 ForEach($accountsStores.accounts) { $account in
-                    NavigationLink(destination: Text(account.author)) {
+                    NavigationLink(destination: AccountSettings(did:account.did)) {
                         Label("\(account.handle)", systemImage: "arrow.2.circlepath")
                     }
                     .padding(.bottom)

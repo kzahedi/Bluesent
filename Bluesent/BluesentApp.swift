@@ -17,6 +17,7 @@ struct BluesentApp: App {
     var body: some Scene {
         WindowGroup{
             MainNavigationView()
+                .frame(minWidth: 400, maxWidth: .infinity, minHeight: 400, maxHeight: .infinity)
         }
         Settings {
             SettingsView()

@@ -46,25 +46,12 @@ struct AccountSettings : View {
             firstKey: "\(labelScrapingMinDaysForUpdate)_\(self.did)",
             alternateKey: labelScrapingMinDaysForUpdate) ?? 0
         
+        print("Minimun \(minDaysBeforeUpdate)")
         nrOfDays = String(minDaysBeforeUpdate)
 
     }
     
-    public func storeValues() {
-        if let i = Int(nrOfDays) {
-            minDaysBeforeUpdate = i
-            if i < 0 {
-                minDaysBeforeUpdate = 0
-                nrOfDays = "0"
-            }
-        }
-        
-        UserDefaults.standard.set($active, forKey:"\(labelActiveAccount)_\(self.did)")
-        UserDefaults.standard.set($forceUpdateFeed, forKey: "\(labelForceUpdateFeed)_\(self.did)")
-        UserDefaults.standard.set($forceUpdateReply, forKey: "\(labelForceUpdateReplies)_\(self.did)")
-        UserDefaults.standard.set($forceUpdateSentiments, forKey: "\(labelForceUpdateSentiments)_\(self.did)")
-        UserDefaults.standard.set($minDaysBeforeUpdate, forKey: "\(labelScrapingMinDaysForUpdate)_\(self.did)")
-    }
+    
     
     var body: some View {
         Form {
@@ -86,7 +73,17 @@ struct AccountSettings : View {
             Section {
                 HStack {
                     TextField("Minimum days before", text: $nrOfDays)
-                        .onChange(of: nrOfDays) { storeValues() }
+                        .onChange(of: nrOfDays) {
+                            if let i = Int(nrOfDays) {
+                                minDaysBeforeUpdate = i
+                                if i < 0 {
+                                    minDaysBeforeUpdate = 0
+                                    nrOfDays = "0"
+                                }
+                            }
+                            
+                            UserDefaults.standard.set(minDaysBeforeUpdate, forKey: "\(labelScrapingMinDaysForUpdate)_\(self.did)")
+                        }
                 }
             }
             .padding()
@@ -96,33 +93,40 @@ struct AccountSettings : View {
                     Toggle(isOn: $active) {
                         Text("Active")
                     }
+                    .onChange(of: active){
+                        UserDefaults.standard.set(active, forKey:"\(labelActiveAccount)_\(self.did)")
+                    }
                 }
-                .onChange(of: active){ storeValues() }
-                
+
                 HStack {
                     Toggle(isOn: $forceUpdateFeed) {
                         Text("Force update of feed")
                     }
+                    .onChange(of: forceUpdateFeed){
+                        UserDefaults.standard.set(forceUpdateFeed, forKey: "\(labelForceUpdateFeed)_\(self.did)")
+                    }
                 }
-                .onChange(of: active){ storeValues() }
-                
+
                 HStack {
                     Toggle(isOn: $forceUpdateReply) {
                         Text("Force update of reply trees")
                     }
+                    .onChange(of: forceUpdateReply){
+                        UserDefaults.standard.set(forceUpdateReply, forKey: "\(labelForceUpdateReplies)_\(self.did)")
+                    }
                 }
-                .onChange(of: active){ storeValues() }
                 
                 HStack {
                     Toggle(isOn: $forceUpdateSentiments) {
                         Text("Force update of sentiment analysis")
                     }
+                    .onChange(of: forceUpdateSentiments){
+                        UserDefaults.standard.set(forceUpdateSentiments, forKey: "\(labelForceUpdateSentiments)_\(self.did)")
+                    }
                 }
-                .onChange(of: active){ storeValues() }
             }
             Divider()
         }
-        .onAppear { initialiseValues() }
     }
 }
 
