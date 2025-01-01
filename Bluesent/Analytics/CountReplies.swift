@@ -11,7 +11,7 @@ import MongoSwiftSync
 
 struct CountReplies {
     
-    public func run(all:Bool = false, progress: (Double) -> ()) throws {
+    public func runFor(did:String) throws {
         print("Counting Replies")
         var mongoDB : MongoDBHandler? = nil
         
@@ -22,20 +22,19 @@ struct CountReplies {
             return
         }
         
-        let query : BSONDocument = ["replyCount": ["$gt": 0]]
-        
+        let query : BSONDocument = ["did": BSON(stringLiteral: did)]
         let cursor : MongoCursor<ReplyTree> = try mongoDB!.posts.find(query)
         let count : Double = Double(try mongoDB!.posts.countDocuments(query))
         var n : Double = 0.0
         
         for document in cursor {
             n = n + 1
-            progress( n / count)
+            print("Counting replies \(n)/\(count)")
             var doc : ReplyTree = try document.get()
             (doc.countedReplies, doc.countedRepliesDepth) = countReplies(document: doc)
             let _ = try mongoDB!.updateFeedDocument(document: doc)
         }
-        print("Done with sentiment analysis")
+        print("Done with counting replies")
     }
     
     private func countReplies(document: ReplyTree, depth:Int = 0) -> (Int, Int) {

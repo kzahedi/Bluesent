@@ -10,7 +10,7 @@ import SwiftUI
 
 struct AccountSettings : View {
     private var did : String = ""
-    private var account : Account?
+    private var account : Account
     
     @State var active : Bool = true
     @State var forceUpdateFeed : Bool = true
@@ -21,12 +21,15 @@ struct AccountSettings : View {
     @State var nrOfDays : String = ""
     @State var minDaysBeforeUpdate : Int = 0
     
-    @State private var scrapingProgress: Double = 0
     @State private var isFeedScraping: Bool = false
+    @State private var isReplyTreeScraping: Bool = false
+    @State private var isCalculatingSentiments: Bool = false
+    @State private var isCountingReplies: Bool = false
+    @State private var isCountingPostPerDay: Bool = false
     
     init(did:String) {
         self.did = did
-        self.account = AccountStore.shared.getAccountBy(did: did) ?? nil
+        self.account = AccountStore.shared.getAccountBy(did: did)!
     }
     
     public func initialiseValues() {
@@ -64,7 +67,7 @@ struct AccountSettings : View {
                     .onChange(of: date) {
                         let d = date.setToStartOfDay()
                         UserDefaults.standard
-                            .set(d, forKey: account!.scrapingDateLabel)
+                            .set(d, forKey: account.scrapingDateLabel)
                     }
                 }
                 .padding()
@@ -82,83 +85,158 @@ struct AccountSettings : View {
                                 }
                             }
                             
-                            UserDefaults.standard.set(minDaysBeforeUpdate, forKey: "\(labelScrapingMinDaysForUpdate)_\(self.did)")
+                            UserDefaults.standard.set(minDaysBeforeUpdate,
+                                                      forKey: account.scrapingDateLabel)
                         }
                 }
-            }
-            .padding()
-            Divider()
-            Section{
-                HStack {
-                    Toggle(isOn: $active) {
-                        Text("Active")
-                    }
-                    .onChange(of: active){
-                        UserDefaults.standard.set(active, forKey:"\(labelActiveAccount)_\(self.did)")
-                    }
-                }
-                
-                HStack {
-                    Toggle(isOn: $forceUpdateFeed) {
-                        Text("Force update of feed")
-                    }
-                    .onChange(of: forceUpdateFeed){
-                        UserDefaults.standard.set(forceUpdateFeed, forKey: "\(labelForceUpdateFeed)_\(self.did)")
-                    }
-                }
-                
-                HStack {
-                    Toggle(isOn: $forceUpdateReply) {
-                        Text("Force update of reply trees")
-                    }
-                    .onChange(of: forceUpdateReply){
-                        UserDefaults.standard.set(forceUpdateReply, forKey: "\(labelForceUpdateReplies)_\(self.did)")
-                    }
-                }
-                
-                HStack {
-                    Toggle(isOn: $forceUpdateSentiments) {
-                        Text("Force update of sentiment analysis")
-                    }
-                    .onChange(of: forceUpdateSentiments){
-                        UserDefaults.standard.set(forceUpdateSentiments, forKey: "\(labelForceUpdateSentiments)_\(self.did)")
-                    }
-                }
+                .padding()
             }
             Divider()
-            Section() {
-                Grid(alignment:.trailing) {
-                    GridRow{
-                        Text("Scrape Feed")
-                            .gridColumnAlignment(.leading)
-                        Button("Run") {
-                            runFeedCrawler()
-                        }
-                        .disabled(isFeedScraping) // Disable button while scraping is in progress
-                        if isFeedScraping {
-                            Text("Scraper still running")
-                        } else {
-                            Text("")
-                        }
-                    }
+            //            Section{
+            //                HStack {
+            //                    Toggle(isOn: $active) {
+            //                        Text("Active")
+            //                    }
+            //                    .onChange(of: active){
+            //                        UserDefaults.standard.set(active, forKey:account.activeLabel)
+            //                    }
+            //                }
+            
+            HStack {
+                Toggle(isOn: $forceUpdateFeed) {
+                    Text("Force update of feed")
                 }
-                .padding(.top)
-                .padding(.trailing)
+                .onChange(of: forceUpdateFeed){
+                    UserDefaults.standard.set(forceUpdateFeed,
+                                              forKey: account.forceFeedUpdateLabel)
+                }
+            }
+            
+            HStack {
+                Toggle(isOn: $forceUpdateReply) {
+                    Text("Force update of reply trees")
+                }
+                .onChange(of: forceUpdateReply){
+                    UserDefaults.standard.set(forceUpdateReply,
+                                              forKey: account.forceReplyTreeUpdateLabel)
+                }
+            }
+            
+            HStack {
+                Toggle(isOn: $forceUpdateSentiments) {
+                    Text("Force update of sentiment analysis")
+                }
+                .onChange(of: forceUpdateSentiments){
+                    UserDefaults.standard.set(forceUpdateSentiments,
+                                              forKey: account.forceSentimentUpdateLabel)
+                }
             }
         }
+        Divider()
+        Section {
+            Grid(alignment:.trailing) {
+                GridRow{
+                    Text("Scrape Feed")
+                        .gridColumnAlignment(.leading)
+                    Button("Run") {
+                        runFeedCrawler()
+                    }
+                    .disabled(isFeedScraping) // Disable button while scraping is in progress
+                    if isFeedScraping {
+                        Text("Running")
+                    } else {
+                        Text("")
+                    }
+                    
+                }
+                
+                GridRow{
+                    Text("Scrape Reply Trees")
+                        .gridColumnAlignment(.leading)
+                    Button("Run") {
+                        runReplyTreeCrawler()
+                    }
+                    .disabled(isReplyTreeScraping) // Disable button while scraping is in progress
+                    if isFeedScraping {
+                        Text("Running")
+                    } else {
+                        Text("")
+                    }
+                }
+            }
+        }
+        Divider()
+        Section {
+            Grid(alignment:.trailing) {
+                GridRow{
+                    Text("Analyse Reply Tree Depths")
+                        .gridColumnAlignment(.leading)
+                    Button("Run") {
+                        countingReplies()
+                    }
+                    .disabled(isCountingReplies)
+                    if isCountingReplies {
+                        Text("Running")
+                    } else {
+                        Text("")
+                    }
+                }
+                GridRow {
+                    Text("Calculate Posts Per Day")
+                        .gridColumnAlignment(.leading)
+                    Button("Run") {
+                        countingPostsPerDay()
+                    }
+                    .disabled(isCountingPostPerDay)
+                    if isCountingPostPerDay  {
+                        Text("Running")
+                    } else {
+                        Text("")
+                    }
+                }
+            }
+        }
+        .padding(.bottom)
+        .padding(.trailing)
         .onAppear() { initialiseValues() }
     }
     
     func runFeedCrawler() {
         isFeedScraping = true
-        DispatchQueue.background(delay: 3.0, background: {
-            if account != nil {
-                account!.scrapeFeed()
-            }
+        DispatchQueue.background(delay: 0.0, background: {
+            account.scrapeFeed()
         }, completion: {
             isFeedScraping = false
         })
     }
+    
+    func runReplyTreeCrawler() {
+        isReplyTreeScraping = true
+        DispatchQueue.background(delay: 0.0, background: {
+            account.scrapeReplyTrees()
+        }, completion: {
+            isReplyTreeScraping = false
+        })
+    }
+    
+    func countingReplies() {
+        isCountingReplies = true
+        DispatchQueue.background(delay: 0.0, background: {
+            account.countReplies()
+        }, completion: {
+            isCountingReplies = false
+        })
+    }
+    
+    func countingPostsPerDay() {
+        isCountingPostPerDay = true
+        DispatchQueue.background(delay: 0.0, background: {
+            account.countPostsPerDay()
+        }, completion: {
+            isCountingPostPerDay = false
+        })
+    }
+    
 }
 
 #Preview{

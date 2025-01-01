@@ -109,7 +109,7 @@ public struct ScrapingView: View {
                     bskyRepliesHandler = BlueskyRepliesHandler()
                 }
                 // Run the blocking task in a background thread
-                try bskyRepliesHandler!.run(progress: updateReplyTreeProgress)
+//                try bskyRepliesHandler!.run(progress: updateReplyTreeProgress)
             } catch {
                 print("Error: \(error)")
             }
@@ -125,7 +125,7 @@ public struct ScrapingView: View {
             sentimentProgress = 0.0
             do {
                 // Run the blocking task in a background thread
-                try SentimentAnalysis().run(progress: updateSentimentProgress)
+//                try SentimentAnalysis().run(progress: updateSentimentProgress)
             } catch {
                 print("Error: \(error)")
             }
@@ -139,7 +139,7 @@ public struct ScrapingView: View {
             do {
                 isCountingReplies = true
                 countRepliesProgress = 0.0
-                try CountReplies().run(progress: updateCountingRepliesProgress)
+//                try CountReplies().run(progress: updateCountingRepliesProgress)
                 countRepliesProgress = 1.0
                 isCountingReplies  = false
             } catch {

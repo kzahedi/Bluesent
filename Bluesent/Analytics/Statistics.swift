@@ -11,12 +11,14 @@ import MongoSwiftSync
 
 struct Statistics {
     
-    public func postsPerDay() throws {
+    public func postsPerDayFor(did:String) throws {
         let mongoDBHandler = try MongoDBHandler()
         let collection = mongoDBHandler.posts
         do {
             let pipeline: [BSONDocument] = [
                 [
+                    "$match": ["did": BSON(stringLiteral:did)]
+                ],[
                     "$addFields": [
                         "formattedCreatedAt": [
                             "$substrBytes": [
@@ -51,11 +53,11 @@ struct Statistics {
                         ]
                     ]
                 ],
-                // Group by "handle" and "day"
+                // Group by "did" and "day"
                 [
                     "$group": [
                         "_id": [
-                            "handle": "$handle",
+                            "did": "$did",
                             "day": "$day"
                         ],
                         "count": ["$sum": 1]
@@ -71,7 +73,7 @@ struct Statistics {
                 [
                     "$sort": [
                         "_id.day": 1,
-                        "_id.handle": 1
+                        "_id.did": 1
                     ]
                 ]
             ]
@@ -81,18 +83,18 @@ struct Statistics {
             let cursor = try collection.aggregate(pipeline)
             for try result in cursor {
                 let doc = try result.get()
-                let handle = doc["_id"]!.documentValue!["handle"]!.stringValue!
+                let did = doc["_id"]!.documentValue!["did"]!.stringValue!
                 let day = doc["_id"]!.documentValue!["day"]!.dateValue!
                 let count = doc["count"]!.toInt()!
                 let ppd = PostsPerDayMDB(day:day, count:count)
-                if results.keys.contains(handle) == false {
-                    results[handle] = DailyStatsMDB(_id:handle, posts_per_day: [])
+                if results.keys.contains(did) == false {
+                    results[did] = DailyStatsMDB(_id:did, posts_per_day: [])
                 }
-                results[handle]!.posts_per_day.append(ppd)
+                results[did]!.posts_per_day.append(ppd)
             }
             
-            for handle in results.keys{
-                var ds = results[handle]
+            for did in results.keys{
+                var ds = results[did]
                 ds!.posts_per_day
                     .sort{ (($0.day).compare($1.day)) == .orderedDescending }
                 try mongoDBHandler.updateDailyStats(document:ds!)

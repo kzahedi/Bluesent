@@ -9,9 +9,14 @@ import Foundation
 import NaturalLanguage
 import MongoSwiftSync
 
+enum SentimentAnalysisTools {
+    case NLTagger
+}
+
 struct SentimentAnalysis {
     
-    public func run(all:Bool = false, progress: (Double) -> ()) throws {
+    public func runFor(did:String, tool: SentimentAnalysisTools, update:Bool = false) {
+        
         print("Running sentiment analysis")
         Task{
             let update : Bool = UserDefaults.standard.bool(forKey: labelForceUpdateSentiments)
@@ -24,21 +29,22 @@ struct SentimentAnalysis {
                 return
             }
             
-            var query : BSONDocument = [:]
-            if all || update {
-            } else {
-                query = ["sentiment": ["$exists": false]]
+            var query : BSONDocument = ["did": BSON(stringLiteral: did)]
+            if update == false {
+                query["sentiment"] = ["$exists": false]
             }
             
             let cursor : MongoCursor<ReplyTree> = try mongoDB!.posts.find(query)
             let count : Double = Double(try mongoDB!.posts.countDocuments(query))
-            var n : Double = 0.0
+            
+            var taggerFunction : ((inout ReplyTree) -> Void)? = nil
+            
+            switch tool {
+                case .NLTagger: taggerFunction = calculateSentimentNLTagger
+            }
             
             let group = DispatchGroup()
-            
             for document in cursor {
-                n = n + 1
-//                progress( n / count)
                 group.enter()
                 DispatchQueue.global(qos: .background)
                     .async {
@@ -47,7 +53,7 @@ struct SentimentAnalysis {
                             if doc.text.count == 0 {
                                 doc.sentiment = nil
                             } else {
-                                modifyReplyTree(&doc, modify:calculateSentiment)
+                                modifyReplyTree(&doc, modify:taggerFunction!)
                             }
                             let _ = try mongoDB!.updateFeedDocument(document: doc)
                         } catch {
@@ -60,7 +66,7 @@ struct SentimentAnalysis {
         print("Done with sentiment analysis")
     }
     
-    private func calculateSentiment(doc: inout ReplyTree) -> Void {
+    private func calculateSentimentNLTagger(doc: inout ReplyTree) -> Void {
         let tagger = NLTagger(tagSchemes: [.sentimentScore])
         var text = doc.text
         text = text.replacingOccurrences(of: "\\r?\\n", with: "", options: .regularExpression)

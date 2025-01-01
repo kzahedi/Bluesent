@@ -98,9 +98,9 @@ struct BlueskyFeedHandler {
         }
         
         
-        var mongoDB : MongoDBHandler = try MongoDBHandler()
-        var limit = parameters.limit
-        var token = parameters.token
+        let mongoDB : MongoDBHandler = try MongoDBHandler()
+        let limit = parameters.limit
+        let token = parameters.token
         
         print("Crawling \(handle)")
         
@@ -108,6 +108,7 @@ struct BlueskyFeedHandler {
         
         while true {
             var foundDocument = false
+            
             let feed = fetchFeed(for:did, token: token!, limit: limit, cursor:cursor)
             
             if feed == nil {

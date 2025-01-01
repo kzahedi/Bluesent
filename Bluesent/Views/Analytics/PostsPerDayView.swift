@@ -43,25 +43,25 @@ struct PostsPerDayView: View {
     private func updateData() throws {
         print("Reading data")
         let mongoDB = try MongoDBHandler()
-        data = try mongoDB.getPostsPerDay()
-        for d in data! {
-            let day = d.posts_per_day.last!.day
-            if firstDay == nil {
-                firstDay = day
-            }
-            
-            if day < firstDay! {
-                firstDay = day
-            }
-            
-            for post in d.posts_per_day {
-                if post.count > maxPostsPerDay {
-                    maxPostsPerDay = post.count
-                }
-            }
-        }
+//        data = try mongoDB.getPostsPerDay(did:"")
+//        for d in data! {
+//            let day = d.posts_per_day.last!.day
+//            if firstDay == nil {
+//                firstDay = day
+//            }
+//            
+//            if day < firstDay! {
+//                firstDay = day
+//            }
+//            
+//            for post in d.posts_per_day {
+//                if post.count > maxPostsPerDay {
+//                    maxPostsPerDay = post.count
+//                }
+//            }
+//        }
                     
-        print("Done reading data: (\(data?.count ?? 0))")
+//        print("Done reading data: (\(data?.count ?? 0))")
     }
     
     private func plotView(_ d: DailyStatsMDB) -> some View {

@@ -8,33 +8,27 @@ import Foundation
 import MongoSwiftSync
 
 struct BlueskyRepliesHandler {
-    private func getCursor(update:Bool = false, earliestDate:Date? = nil, mongoDB: MongoDBHandler) throws -> (
-        MongoCursor<ReplyTree>?,
-        Int
-    ) {
+    private func getCursor(did:String,
+                           update:Bool = false,
+                           earliestDate:Date? = nil,
+                           mongoDB: MongoDBHandler) throws -> (MongoCursor<ReplyTree>?, Int) {
+        var query : BSONDocument = ["did":BSON(stringLiteral: did)]
         
-        let update = UserDefaults.standard.bool(forKey: labelForceUpdateSentiments)
-        
-        var cursor : MongoCursor<ReplyTree>? = nil;
-        var count : Int = 0
-        do {
-            if update {
-                cursor  = try mongoDB.posts.find([:])
-                count = try mongoDB.posts.countDocuments([:])
-            } else {
-                let query: BSONDocument = ["replies.0" : ["$exists":false], "replyCount": ["$gt":0]]
-                let options = FindOptions(sort: ["replyCount": 1])
-                cursor  = try mongoDB.posts.find(query, options: options)
-                count = try mongoDB.posts.countDocuments(query)
-            }
-        } catch {
-            print(error)
-            return (nil, 0)
+        if update == false {
+            query["replies.0"] = ["$exists":false]
+            query["replyCount"] = ["$gt":0]
         }
         
-        print("Running \(count) posts")
-        
-        return (cursor, count)
+        do {
+            let options = FindOptions(sort: ["replyCount": 1])
+            let cursor = try mongoDB.posts.find(query, options: options)
+            let count = try mongoDB.posts.countDocuments(query)
+            print("Running \(count) posts")
+            return (cursor, count)
+        } catch {
+            print(error)
+        }
+        return (nil, 0)
     }
     
     
@@ -138,7 +132,10 @@ struct BlueskyRepliesHandler {
         return false
     }
     
-    public func run(progress: (Double)->()) throws {
+    public func runFor(did:String,
+                       handle:String,
+                       earliestDate:Date? = nil,
+                       forceUpdate:Bool = false) throws {
         let mongoDB = try MongoDBHandler()
         
         let parameters = BlueskyParameters()
@@ -149,28 +146,29 @@ struct BlueskyRepliesHandler {
             return
         }
         
-        let update : Bool = UserDefaults.standard.bool(forKey: labelForceUpdateReplies)
-        let (cursor, count) = try getCursor(update:update, earliestDate: parameters.firstDate, mongoDB: mongoDB)
+        let (cursor, count) = try getCursor(did:did,
+                                            update:forceUpdate,
+                                            earliestDate: parameters.firstDate,
+                                            mongoDB: mongoDB)
         
         if cursor == nil {
             return
         }
         
-        var step : Double = 0.0
-        let dCount : Double = Double(count)
-        
+        var index : Double = 0.0
+        let _ : Double = Double(count)
         for document in cursor! {
             
-            step = step + 1.0
-            progress(step / dCount)
-            //            print("Progress \(step) / \(count) : \(step / Double(count-1))")
-            
-            var doc = try document.get()
-            if skip(doc: doc) { continue }
-            
-            recursiveGetThread(doc: &doc, bskyToken:bskyToken)
-            
+            //            DispatchQueue.background(delay: 0.0, background: {
+            index = index + 1.0
+            print("Running document \(index) / \(count)")
+
             do {
+                var doc = try document.get()
+                if skip(doc: doc) { continue }
+                
+                recursiveGetThread(doc: &doc, bskyToken:bskyToken)
+                
                 let check = try mongoDB.updateFeedDocument(document: doc)
                 if check != true {
                     print("Error. Document must have been in collection but was not \(doc._id)")
@@ -178,8 +176,14 @@ struct BlueskyRepliesHandler {
             } catch {
                 print(error)
             }
+            
+            //            }, completion: {
+            //                index = index + 1.0
+            //                print("Completed document \(index) / \(count)")
+            //            })
         }
     }
+    
     
     private func createRequestURL(uri:String) -> URL {
         let url = "https://api.bsky.social/xrpc/app.bsky.feed.getPostThread?parentHeight=0&depth=1000&uri=\(uri)"
@@ -187,8 +191,6 @@ struct BlueskyRepliesHandler {
     }
     
     public func recursiveGetThread(doc:inout ReplyTree, bskyToken:String) {
-        
-        //        print("Recursive \(doc._id)")
         
         if doc.replies == nil || doc.replies!.count == 0 {
             // only get new subtrees for nodes hat have no children

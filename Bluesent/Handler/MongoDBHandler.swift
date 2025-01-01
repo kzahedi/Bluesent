@@ -77,30 +77,29 @@ class MongoDBHandler {
         )
     }
     
-    public func getPostsPerDay(firstDate:Date? = nil, lastDate:Date?=nil) throws -> [DailyStatsMDB] {
-        var ret : [DailyStatsMDB] = []
-        let cursor = try statistics.find([:])
-        for document in cursor {
-            var d = try document.get()
-            if firstDate != nil && lastDate != nil {
-                d.posts_per_day = d.posts_per_day
-                    .filter { $0.day >= firstDate! && $0.day <= lastDate! }
-            }
-            if firstDate != nil && lastDate == nil {
-                d.posts_per_day = d.posts_per_day
-                    .filter { $0.day >= firstDate! }
-            }
-            if firstDate == nil && lastDate != nil {
-                d.posts_per_day = d.posts_per_day
-                    .filter { $0.day <= lastDate! }
-            }
-            d.posts_per_day.sort{ (($0.day).compare($1.day)) == .orderedDescending }
-            ret.append(d)
+    public func getPostsPerDay(did:String, firstDate:Date? = nil, lastDate:Date?=nil) throws -> DailyStatsMDB? {
+        var dailyStats = try statistics.findOne(["_id":BSON(stringLiteral: did)])
+        
+        if dailyStats == nil {
+            return nil
         }
         
-        return ret
+        if firstDate != nil && lastDate != nil {
+            dailyStats!.posts_per_day = dailyStats!.posts_per_day
+                .filter { $0.day >= firstDate! && $0.day <= lastDate! }
+        }
+        if firstDate != nil && lastDate == nil {
+            dailyStats!.posts_per_day = dailyStats!.posts_per_day
+                .filter { $0.day >= firstDate! }
+        }
+        if firstDate == nil && lastDate != nil {
+            dailyStats!.posts_per_day = dailyStats!.posts_per_day
+                .filter { $0.day <= lastDate! }
+        }
+        dailyStats!.posts_per_day.sort{ (($0.day).compare($1.day)) == .orderedDescending }
+        
+        return dailyStats!
     }
-    
     
     
     deinit {
