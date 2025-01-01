@@ -10,7 +10,7 @@ import Foundation
 
 extension Date {
 
-    func setToStartOfDay() -> Date
+    func toStartOfDay() -> Date
     {
         let calendar = Calendar.current
 

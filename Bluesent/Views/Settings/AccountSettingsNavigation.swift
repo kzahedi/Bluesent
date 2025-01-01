@@ -30,15 +30,17 @@ struct AccountSettingsNavigation: View {
                 .padding(.leading)
 
                 ForEach($accountsStores.accounts) { $account in
-                    NavigationLink(destination: AccountSettings(did:account.did)) {
-                        if account.author == "N/A" {
-                            Label("\(account.handle)", systemImage: "person.circle")
-                        } else {
-                            Label("\(account.author)", systemImage: "person.circle")
+                    if account.did != nil {
+                        NavigationLink(destination: AccountSettings(did:account.did!)) {
+                            if account.author == "N/A" {
+                                Label("\(account.handle)", systemImage: "person.circle")
+                            } else {
+                                Label("\(account.author)", systemImage: "person.circle")
+                            }
                         }
+                        .padding(.trailing)
+                        .padding(.leading)
                     }
-                    .padding(.trailing)
-                    .padding(.leading)
                 }
             }
             .frame(minWidth: 200)
@@ -63,7 +65,7 @@ struct AccountSettingsNavigation: View {
             let d : Date = UserDefaults.standard.object(forKey: labelScrapingDate) as! Date
             date = d
         } else {
-            let d = date.setToStartOfDay()
+            let d = date.toStartOfDay()
             UserDefaults.standard.set(d, forKey: labelScrapingDate)
         }
         updateReplies = UserDefaults.standard.bool(forKey: labelForceUpdateReplies)

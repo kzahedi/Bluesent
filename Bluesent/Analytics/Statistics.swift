@@ -9,100 +9,160 @@ import Foundation
 import NaturalLanguage
 import MongoSwiftSync
 
+
+struct DailyStats: Codable, Identifiable {
+    var id: String {_id}
+    var _id : String // Handle
+    var postStats: [StatsEntry]?
+    var replyStats: [StatsEntry]?
+    var replyTreeStats: [StatsEntry]?
+    var sentimentStats: [StatsEntry]?
+}
+
+struct StatsEntry : Codable, Identifiable {
+    var id : Date {day}
+    var day: Date
+    var values: [Double]?
+    var sum: Double?
+    var avg: Double?
+    var stdDev: Double?
+}
+
 struct Statistics {
     
-    public func postsPerDayFor(did:String) throws {
+    func standardDeviation(_ numbers: [Double]) -> Double {
+        let count = Double(numbers.count)
+        guard count > 1 else { return 0 }
+        
+        let mean = numbers.reduce(0, +) / count
+        let sumOfSquaredDifferences = numbers.map { pow($0 - mean, 2) }.reduce(0, +)
+        return sqrt(sumOfSquaredDifferences / (count - 1))
+    }
+    
+    public func countPostsPerDay(did:String) throws {
         let mongoDBHandler = try MongoDBHandler()
-        let collection = mongoDBHandler.posts
-        do {
-            let pipeline: [BSONDocument] = [
-                [
-                    "$match": ["did": BSON(stringLiteral:did)]
-                ],[
-                    "$addFields": [
-                        "formattedCreatedAt": [
-                            "$substrBytes": [
-                                "$createdAt", // original field
-                                0,            // start at the beginning
-                                10            // extract the first 10 characters (yyyy-mm-dd)
-                            ]
-                        ]
-                    ]
-                ],
-                // Convert the "createdAt" string to a Date object
-                [
-                    "$addFields": [
-                        "createdAtDate": [
-                            "$dateFromString": [
-                                "dateString": "$formattedCreatedAt",
-                                "format": "%Y-%m-%d", // Explicitly include the 'Z'
-                                "timezone": "UTC" // Handle the timezone properly
-                            ]
-                        ]
-                    ]
-                ],
-                // Ensure the date conversion was successful and truncate to the day
-                [
-                    "$addFields": [
-                        "day": [
-                            "$cond": [
-                                "if": ["$ne": ["$createdAtDate", BSON.null]],
-                                "then": ["$dateTrunc": ["date": "$createdAtDate", "unit": "day"]],
-                                "else": BSON.null
-                            ]
-                        ]
-                    ]
-                ],
-                // Group by "did" and "day"
-                [
-                    "$group": [
-                        "_id": [
-                            "did": "$did",
-                            "day": "$day"
-                        ],
-                        "count": ["$sum": 1]
-                    ]
-                ],
-                // Filter out results where "day" is null
-                [
-                    "$match": [
-                        "_id.day": ["$ne": BSON.null]
-                    ]
-                ],
-                // Sort the results
-                [
-                    "$sort": [
-                        "_id.day": 1,
-                        "_id.did": 1
-                    ]
-                ]
-            ]
-            
-            var results : [String: DailyStatsMDB] = [:]
-            
-            let cursor = try collection.aggregate(pipeline)
-            for try result in cursor {
-                let doc = try result.get()
-                let did = doc["_id"]!.documentValue!["did"]!.stringValue!
-                let day = doc["_id"]!.documentValue!["day"]!.dateValue!
-                let count = doc["count"]!.toInt()!
-                let ppd = PostsPerDayMDB(day:day, count:count)
-                if results.keys.contains(did) == false {
-                    results[did] = DailyStatsMDB(_id:did, posts_per_day: [])
-                }
-                results[did]!.posts_per_day.append(ppd)
-            }
-            
-            for did in results.keys{
-                var ds = results[did]
-                ds!.posts_per_day
-                    .sort{ (($0.day).compare($1.day)) == .orderedDescending }
-                try mongoDBHandler.updateDailyStats(document:ds!)
-            }
-                    
-        } catch {
-            print("Error running aggregation: \(error)")
+        var r : DailyStats? = try mongoDBHandler.statistics.findOne(["did":BSON(stringLiteral: did)])
+        
+        if r == nil {
+            r = DailyStats(_id:did, postStats:nil, replyStats:nil, sentimentStats:nil)
         }
+        
+        let query : BSONDocument = ["did":BSON(stringLiteral: did)]
+        let options = FindOptions(sort: ["createdAt": 1])
+        let cursor = try mongoDBHandler.posts.find(query,options:options)
+        
+        var stats : [Date:StatsEntry] = [:]
+        
+        for element in cursor {
+            let doc = try element.get()
+            let day = doc.createdAt!.toStartOfDay()
+            if stats.keys.contains(day) {
+                var entry = stats[day]!
+                if entry.sum == nil {
+                    entry.sum! = 1.0
+                } else {
+                    entry.sum! += 1.0
+                }
+                stats[day] = entry
+            } else {
+                stats[day] = StatsEntry(day:day, values:nil, sum:1.0, avg:nil, stdDev:nil)
+            }
+        }
+        
+        var s =  Array(stats.values)
+        s.sort{ (($0.day).compare($1.day)) == .orderedDescending }
+        
+        r!.postStats = s
+        
+        try mongoDBHandler.updateDailyStats(document: r!)
+        
+    }
+    
+    public func countReplies(did:String) throws {
+        let mongoDBHandler = try MongoDBHandler()
+        var r : DailyStats? = try mongoDBHandler.statistics.findOne(["did":BSON(stringLiteral: did)])
+        
+        if r == nil {
+            r = DailyStats(_id:did, postStats:nil, replyStats:nil, sentimentStats:nil)
+        }
+        
+        let query : BSONDocument = ["did":BSON(stringLiteral: did)]
+        let options = FindOptions(sort: ["createdAt": 1])
+        let cursor = try mongoDBHandler.posts.find(query,options:options)
+        
+        var stats : [Date:StatsEntry] = [:]
+        
+        for element in cursor {
+            let doc = try element.get()
+            let day = doc.createdAt!.toStartOfDay()
+            let value = Double(doc.countedReplies!)
+            if stats.keys.contains(day) {
+                var entry = stats[day]!
+                entry.values!.append(value)
+                stats[day] = entry
+            } else {
+                stats[day] = StatsEntry(day:day, values:[value], sum:nil, avg:nil, stdDev:nil)
+            }
+        }
+        
+        for key in stats.keys {
+            var s = stats[key]!
+            s.sum = s.values!.reduce(0, +)
+            s.avg = s.sum! / Double(s.values!.count)
+            s.stdDev = standardDeviation(s.values!)
+            stats[key] = s
+        }
+        
+        var s =  Array(stats.values)
+        s.sort{ (($0.day).compare($1.day)) == .orderedDescending }
+        
+        r!.replyStats = s
+        
+        try mongoDBHandler.updateDailyStats(document: r!)
+        
+    }
+    
+    public func countReplyTreeDepths(did:String) throws {
+        let mongoDBHandler = try MongoDBHandler()
+        var r : DailyStats? = try mongoDBHandler.statistics.findOne(["did":BSON(stringLiteral: did)])
+        
+        if r == nil {
+            r = DailyStats(_id:did, postStats:nil, replyStats:nil, sentimentStats:nil)
+        }
+        
+        let query : BSONDocument = ["did":BSON(stringLiteral: did)]
+        let options = FindOptions(sort: ["createdAt": 1])
+        let cursor = try mongoDBHandler.posts.find(query,options:options)
+        
+        var stats : [Date:StatsEntry] = [:]
+        
+        for element in cursor {
+            let doc = try element.get()
+            let day = doc.createdAt!.toStartOfDay()
+            let value = Double(doc.countedRepliesDepth!)
+            if stats.keys.contains(day) {
+                var entry = stats[day]!
+                entry.values!.append(value)
+                stats[day] = entry
+            } else {
+                stats[day] = StatsEntry(day:day, values:[value], sum:nil, avg:nil, stdDev:nil)
+            }
+        }
+        
+        for key in stats.keys {
+            var s = stats[key]!
+            s.sum = s.values!.reduce(0, +)
+            s.avg = s.sum! / Double(s.values!.count)
+            s.stdDev = standardDeviation(s.values!)
+            stats[key] = s
+        }
+        
+        var s =  Array(stats.values)
+        s.sort{ (($0.day).compare($1.day)) == .orderedDescending }
+        
+        r!.replyTreeStats = s
+        
+        try mongoDBHandler.updateDailyStats(document: r!)
         
     }
     

@@ -28,7 +28,7 @@ struct GeneralCrawlerSettings : View {
                                label: { Text("Earliest Date") })
                     .datePickerStyle(.field)
                     .onChange(of: date) {
-                        let d = date.setToStartOfDay()
+                        let d = date.toStartOfDay()
                         UserDefaults.standard.set(d, forKey: labelScrapingDate)
                     }
                     .onAppear() {
@@ -128,7 +128,7 @@ struct GeneralCrawlerSettings : View {
             let d : Date = UserDefaults.standard.object(forKey: labelScrapingDate) as! Date
             date = d
         } else {
-            let d = date.setToStartOfDay()
+            let d = date.toStartOfDay()
             UserDefaults.standard.set(d, forKey: labelScrapingDate)
         }
         updateReplies = UserDefaults.standard.bool(forKey: labelForceUpdateReplies)

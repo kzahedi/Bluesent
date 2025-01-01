@@ -12,14 +12,14 @@ class MongoDBHandler {
     private let client: MongoClient
     private var database: MongoDatabase
     public let posts: MongoCollection<ReplyTree>
-    public let statistics: MongoCollection<DailyStatsMDB>
+    public let statistics: MongoCollection<DailyStats>
     
     init() throws {
         // Initialize MongoDB client
         client = try MongoClient("mongodb://localhost:27017")
         database = client.db("bluesent")
         posts = database.collection("posts", withType: ReplyTree.self)
-        statistics = database.collection("daily_statistics", withType: DailyStatsMDB.self)
+        statistics = database.collection("statistics", withType: DailyStats.self)
         
         // Create unique index on _id
         // try posts.createIndex(["_id": 1], indexOptions: IndexOptions(unique: true))
@@ -65,7 +65,7 @@ class MongoDBHandler {
         return found
     }
     
-    public func updateDailyStats(document:DailyStatsMDB) throws {
+    public func updateDailyStats(document:DailyStats) throws {
         let filter: BSONDocument = ["_id": .string(document._id)]
         let update: BSONDocument = ["$set": .document(try BSONEncoder().encode(document))]
         
@@ -77,7 +77,7 @@ class MongoDBHandler {
         )
     }
     
-    public func getPostsPerDay(did:String, firstDate:Date? = nil, lastDate:Date?=nil) throws -> DailyStatsMDB? {
+    public func getPostsPerDay(did:String, firstDate:Date? = nil, lastDate:Date?=nil) throws -> DailyStats? {
         var dailyStats = try statistics.findOne(["_id":BSON(stringLiteral: did)])
         
         if dailyStats == nil {
@@ -85,18 +85,18 @@ class MongoDBHandler {
         }
         
         if firstDate != nil && lastDate != nil {
-            dailyStats!.posts_per_day = dailyStats!.posts_per_day
+            dailyStats!.postStats! = dailyStats!.postStats!
                 .filter { $0.day >= firstDate! && $0.day <= lastDate! }
         }
         if firstDate != nil && lastDate == nil {
-            dailyStats!.posts_per_day = dailyStats!.posts_per_day
+            dailyStats!.postStats! = dailyStats!.postStats!
                 .filter { $0.day >= firstDate! }
         }
         if firstDate == nil && lastDate != nil {
-            dailyStats!.posts_per_day = dailyStats!.posts_per_day
+            dailyStats!.postStats! = dailyStats!.postStats!
                 .filter { $0.day <= lastDate! }
         }
-        dailyStats!.posts_per_day.sort{ (($0.day).compare($1.day)) == .orderedDescending }
+        dailyStats!.postStats!.sort{ (($0.day).compare($1.day)) == .orderedDescending }
         
         return dailyStats!
     }

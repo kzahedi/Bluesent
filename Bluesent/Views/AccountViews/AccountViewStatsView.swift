@@ -9,10 +9,16 @@ import Foundation
 import SwiftUI
 import Charts
 
-struct AccountViewPostsPerDay: View {
+struct PostStatsDataPoint : Codable, Identifiable {
+    var id : UUID = UUID()
+    var day: Date
+    var count: Int
+}
+
+struct AccountStatsView: View {
     var did:String = ""
     var handle:String = ""
-    @State var data : DailyStatsMDB? = nil
+    @State var data : DailyStats? = nil
     @State var firstDay : Date? = nil
     @State var maxPostsPerDay : Int = 0
     @State var currentZoom = 0.0
@@ -31,8 +37,11 @@ struct AccountViewPostsPerDay: View {
         ScrollView([.horizontal, .vertical]) {
             VStack(alignment: .leading){
                 if data != nil {
+                    let lst = data!.postStats!.map {
+                        PostStatsDataPoint(id:UUID(), day: $0.day, count: Int($0.sum ?? 0))
+                    }
                     Chart {
-                        ForEach(data!.posts_per_day) { dataPoint in
+                        ForEach(lst) { dataPoint in
                             BarMark(x: .value("Month", dataPoint.day, unit:.day),
                                     y: .value("Count", dataPoint.count))
                         }
@@ -79,11 +88,11 @@ struct AccountViewPostsPerDay: View {
         let mongoDB = try MongoDBHandler()
         data = try mongoDB.getPostsPerDay(did:did)
         if data != nil {
-            firstDay = data!.posts_per_day.last!.day
+            firstDay = data!.postStats!.last!.day
         }
     }
 }
 
 #Preview {
-    AccountViewPostsPerDay(did:"did:plc:42pjb4dy3p3ubiekmwpkthen", handle:"NAME")
+    AccountStatsView(did:"did:plc:42pjb4dy3p3ubiekmwpkthen", handle:"NAME")
 }

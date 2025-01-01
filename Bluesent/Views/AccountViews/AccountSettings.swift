@@ -65,7 +65,7 @@ struct AccountSettings : View {
                                label: { Text("Earliest Date") })
                     .datePickerStyle(.field)
                     .onChange(of: date) {
-                        let d = date.setToStartOfDay()
+                        let d = date.toStartOfDay()
                         UserDefaults.standard
                             .set(d, forKey: account.scrapingDateLabel)
                     }

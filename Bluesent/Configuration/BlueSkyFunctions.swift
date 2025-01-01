@@ -11,6 +11,7 @@ func resolveDID(handle: String) -> String? {
     let didURL = "https://bsky.social/xrpc/com.atproto.identity.resolveHandle"
     let group = DispatchGroup()
     let url = URL(string: "\(didURL)?handle=\(handle)")
+    print(url)
     
     if url == nil {
         print("Not an URL: \(didURL)?handle=\(handle)")
