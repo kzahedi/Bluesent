@@ -9,16 +9,16 @@ import Foundation
 import NaturalLanguage
 import MongoSwiftSync
 
-enum SentimentAnalysisTools {
+public enum SentimentAnalysisTool {
     case NLTagger
 }
 
 struct SentimentAnalysis {
     
-    public func runFor(did:String, tool: SentimentAnalysisTools, update:Bool = false) {
+    public func runFor(did:String, tool: SentimentAnalysisTool, update:Bool = true) {
         
         print("Running sentiment analysis")
-        Task{
+        do {
             let update : Bool = UserDefaults.standard.bool(forKey: labelForceUpdateSentiments)
             var mongoDB : MongoDBHandler? = nil
             
@@ -35,7 +35,7 @@ struct SentimentAnalysis {
             }
             
             let cursor : MongoCursor<ReplyTree> = try mongoDB!.posts.find(query)
-            let count : Double = Double(try mongoDB!.posts.countDocuments(query))
+            let count = try mongoDB!.posts.countDocuments(query)
             
             var taggerFunction : ((inout ReplyTree) -> Void)? = nil
             
@@ -43,26 +43,29 @@ struct SentimentAnalysis {
                 case .NLTagger: taggerFunction = calculateSentimentNLTagger
             }
             
-            let group = DispatchGroup()
+            var index = 0
             for document in cursor {
-                group.enter()
-                DispatchQueue.global(qos: .background)
-                    .async {
-                        do {
-                            var doc : ReplyTree = try document.get()
-                            if doc.text.count == 0 {
-                                doc.sentiment = nil
-                            } else {
-                                modifyReplyTree(&doc, modify:taggerFunction!)
-                            }
-                            let _ = try mongoDB!.updateFeedDocument(document: doc)
-                        } catch {
-                            print(error)
+                DispatchQueue.background(delay: 0.0, background: {
+                    do {
+                        var doc : ReplyTree = try document.get()
+                        if doc.text.count == 0 {
+                            doc.sentiment = nil
+                        } else {
+                            modifyReplyTree(&doc, modify:taggerFunction!)
                         }
-                        group.leave()
+                        let _ = try mongoDB!.updateFeedDocument(document: doc)
+                    } catch {
+                        print(error)
                     }
+                }, completion: {
+                    index = index + 1
+                    print("Completed document \(index) / \(count)")
+                })
             }
+        } catch {
+            print(error)
         }
+        
         print("Done with sentiment analysis")
     }
     

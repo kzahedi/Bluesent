@@ -28,11 +28,18 @@ struct CountReplies {
         var n : Double = 0.0
         
         for document in cursor {
-            n = n + 1
-            print("Counting replies \(n)/\(count)")
-            var doc : ReplyTree = try document.get()
-            (doc.countedReplies, doc.countedRepliesDepth) = countReplies(document: doc)
-            let _ = try mongoDB!.updateFeedDocument(document: doc)
+            DispatchQueue.background(delay: 0.0, background: {
+                do {
+                    var doc : ReplyTree = try document.get()
+                    (doc.countedReplies, doc.countedRepliesDepth) = countReplies(document: doc)
+                    let _ = try mongoDB!.updateFeedDocument(document: doc)
+                } catch {
+                    print(error)
+                }
+            }, completion: {
+                n = n + 1
+                print("Completed replies \(n)/\(count)")
+            })
         }
         print("Done with counting replies")
     }

@@ -8,6 +8,7 @@
 import Foundation
 import MongoSwiftSync
 
+
 public struct Account : Identifiable {
     public var id: String {did ?? ""}
     
@@ -25,12 +26,12 @@ public struct Account : Identifiable {
     public var forceSentimentUpdateLabel : String = ""
     
     init(handle:String) throws {
-        self.handle = handle
         var client = try MongoClient("mongodb://localhost:27017")
         client = try MongoClient("mongodb://localhost:27017")
         db = client.db("bluesent")
         posts = db!.collection("posts", withType: ReplyTree.self)
-        
+        self.handle = handle
+
         try updateDid()
      }
     
@@ -45,6 +46,26 @@ public struct Account : Identifiable {
         self.forceReplyTreeUpdateLabel = "\(labelForceUpdateReplies)_\(self.did!)"
         self.forceSentimentUpdateLabel = "\(labelForceUpdateSentiments)_\(self.did!)"
         self.author = try getUniqueValues(fieldName: "author") ?? "N/A"
+    }
+    
+    public func getScrapingDate() -> Date? {
+        return UserDefaults.standard.dateValueAlternate(firstKey: scrapingDateLabel, alternateKey: scrapingDateLabel)
+    }
+    
+    public func isActive() -> Bool {
+        return UserDefaults.standard.bool(forKey: self.activeLabel)
+    }
+    
+    public func forceFeedUpdate() {
+        UserDefaults.standard.bool(forKey: self.forceFeedUpdateLabel)
+    }
+    
+    public func forceReplyTreeUpdate() {
+        UserDefaults.standard.bool(forKey: self.forceReplyTreeUpdateLabel)
+    }
+    
+    public func forceSentimentUpdate() {
+        UserDefaults.standard.bool(forKey: self.forceSentimentUpdateLabel)
     }
     
     private func getUniqueValues(fieldName:String) throws -> String? {
@@ -103,12 +124,17 @@ public struct Account : Identifiable {
         } catch { print(error) }
     }
     
-    public func countPostsPerDay() {
+    public func calculateStatistics() {
         do {
             try Statistics().countPostsPerDay(did:did!)
             try Statistics().countReplies(did:did!)
             try Statistics().countReplyTreeDepths(did:did!)
+            try Statistics().collectPostSentiments(did:did!)
         } catch { print(error) }
+    }
+    
+    public func runSentimentAnalysis(tool: SentimentAnalysisTool) {
+        SentimentAnalysis().runFor(did: did!, tool: .NLTagger)
     }
 
 }

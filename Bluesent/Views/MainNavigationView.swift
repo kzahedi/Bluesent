@@ -18,8 +18,8 @@ struct MainNavigationView: View {
                     Label("Scraping", systemImage: "arrow.2.circlepath")
                 }
                 .padding()
-                NavigationLink(destination:Text("Analysis")){
-                    Label("Analysis", systemImage: "magnifyingglass")
+                NavigationLink(destination:AccountStastNavigation()){
+                    Label("Statistics", systemImage: "magnifyingglass")
                 }
                 .padding()
             }

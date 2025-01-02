@@ -26,6 +26,7 @@ struct AccountSettings : View {
     @State private var isCalculatingSentiments: Bool = false
     @State private var isCountingReplies: Bool = false
     @State private var isCountingPostPerDay: Bool = false
+    @State private var isSentimentNLTagger: Bool = false
     
     init(did:String) {
         self.did = did
@@ -102,6 +103,7 @@ struct AccountSettings : View {
             //                    }
             //                }
             
+            
             HStack {
                 Toggle(isOn: $forceUpdateFeed) {
                     Text("Force update of feed")
@@ -131,10 +133,8 @@ struct AccountSettings : View {
                                               forKey: account.forceSentimentUpdateLabel)
                 }
             }
-        }
-        Divider()
-        Section {
-            Grid(alignment:.trailing) {
+            Divider()
+            Grid(alignment:.leading) {
                 GridRow{
                     Text("Scrape Feed")
                         .gridColumnAlignment(.leading)
@@ -142,12 +142,6 @@ struct AccountSettings : View {
                         runFeedCrawler()
                     }
                     .disabled(isFeedScraping) // Disable button while scraping is in progress
-                    if isFeedScraping {
-                        Text("Running")
-                    } else {
-                        Text("")
-                    }
-                    
                 }
                 
                 GridRow{
@@ -157,17 +151,7 @@ struct AccountSettings : View {
                         runReplyTreeCrawler()
                     }
                     .disabled(isReplyTreeScraping) // Disable button while scraping is in progress
-                    if isFeedScraping {
-                        Text("Running")
-                    } else {
-                        Text("")
-                    }
                 }
-            }
-        }
-        Divider()
-        Section {
-            Grid(alignment:.trailing) {
                 GridRow{
                     Text("Analyse Reply Tree Depths")
                         .gridColumnAlignment(.leading)
@@ -175,24 +159,22 @@ struct AccountSettings : View {
                         countingReplies()
                     }
                     .disabled(isCountingReplies)
-                    if isCountingReplies {
-                        Text("Running")
-                    } else {
-                        Text("")
-                    }
                 }
                 GridRow {
-                    Text("Calculate Posts Per Day")
+                    Text("Calculate Sentiments with NLTagger")
                         .gridColumnAlignment(.leading)
                     Button("Run") {
-                        countingPostsPerDay()
+                        sentimentAnalysis(tool:.NLTagger)
+                    }
+                    .disabled(isSentimentNLTagger)
+                }
+                GridRow {
+                    Text("Collect Statistics")
+                        .gridColumnAlignment(.leading)
+                    Button("Run") {
+                        collectStatistics()
                     }
                     .disabled(isCountingPostPerDay)
-                    if isCountingPostPerDay  {
-                        Text("Running")
-                    } else {
-                        Text("")
-                    }
                 }
             }
         }
@@ -228,12 +210,21 @@ struct AccountSettings : View {
         })
     }
     
-    func countingPostsPerDay() {
+    func collectStatistics() {
         isCountingPostPerDay = true
         DispatchQueue.background(delay: 0.0, background: {
-            account.countPostsPerDay()
+            account.calculateStatistics()
         }, completion: {
             isCountingPostPerDay = false
+        })
+    }
+    
+    func sentimentAnalysis(tool: SentimentAnalysisTool) {
+        isSentimentNLTagger = true
+        DispatchQueue.background(delay: 0.0, background: {
+            account.runSentimentAnalysis(tool: .NLTagger)
+        }, completion: {
+            isSentimentNLTagger = false
         })
     }
     
